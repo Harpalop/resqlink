@@ -1,0 +1,29 @@
+# Dependencies & build output
+node_modules/
+dist/
+target/
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Claude local settings
+.claude/settings.local.json
+
+# Local tooling
+.claude/

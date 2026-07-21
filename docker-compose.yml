@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: resqlink-postgres
+    environment:
+      POSTGRES_DB: resqlink
+      POSTGRES_USER: resqlink
+      POSTGRES_PASSWORD: resqlink
+    ports:
+      - "5432:5432"
+    volumes:
+      - resqlink_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U resqlink -d resqlink"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  resqlink_pgdata:

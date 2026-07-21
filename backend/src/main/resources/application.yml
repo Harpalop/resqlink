@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: resqlink-api
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/resqlink}
+    username: ${DB_USERNAME:resqlink}
+    password: ${DB_PASSWORD:resqlink}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8080
+
+resqlink:
+  security:
+    jwt:
+      # Dev-only secret. Override with the JWT_SECRET environment variable in production.
+      secret: ${JWT_SECRET:jrchwVcycyL39QUDXBcSMFXKupKGGGvb7DZDJNux3KPdr4QO1iWFf0fhy05m12i5EjI+DpMCdIEP8Uciltu7mw==}
+      access-token-ttl-ms: 86400000    # 24 hours
+      refresh-token-ttl-ms: 604800000  # 7 days
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+
+logging:
+  level:
+    org.springframework.security: INFO
