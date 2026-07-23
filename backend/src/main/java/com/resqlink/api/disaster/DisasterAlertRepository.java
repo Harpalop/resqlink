@@ -10,4 +10,6 @@ import java.util.UUID;
 public interface DisasterAlertRepository extends JpaRepository<DisasterAlert, UUID> {
 
     List<DisasterAlert> findByActiveTrueOrderByCreatedAtDesc();
+
+    List<DisasterAlert> findAllByOrderByCreatedAtDesc();
 }
