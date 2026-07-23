@@ -14,6 +14,10 @@ public interface EmergencyRepository extends JpaRepository<Emergency, UUID> {
 
     List<Emergency> findTop20ByUserIdOrderByCreatedAtDesc(UUID userId);
 
+    List<Emergency> findByStatusOrderByCreatedAtDesc(EmergencyStatus status);
+
+    List<Emergency> findByUserIdAndStatusOrderByCreatedAtDesc(UUID userId, EmergencyStatus status);
+
     Optional<Emergency> findByIdAndUserId(UUID id, UUID userId);
 
     boolean existsByReference(String reference);
