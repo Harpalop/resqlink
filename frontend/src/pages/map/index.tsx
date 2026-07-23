@@ -100,7 +100,7 @@ export default function MapPage() {
   const overviewQuery = useQuery({
     queryKey: ['map', 'overview'],
     queryFn: mapApi.getOverview,
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
   })
 
   const hospitals = overviewQuery.data?.hospitals ?? []

@@ -196,7 +196,7 @@ function RequestsTab() {
   const requestsQuery = useQuery({
     queryKey: ['blood', 'requests'],
     queryFn: bloodApi.getOpenRequests,
-    refetchInterval: 30_000,
+    refetchInterval: 120_000,
   })
 
   const {

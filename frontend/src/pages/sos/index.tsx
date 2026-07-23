@@ -271,7 +271,7 @@ export default function SosPage() {
   const activeQuery = useQuery({
     queryKey: ['sos', 'active'],
     queryFn: sosApi.getActive,
-    refetchInterval: 15_000,
+    refetchInterval: 60_000,
   })
 
   const triggerMutation = useMutation({
