@@ -55,4 +55,9 @@ public class Hospital {
     @Builder.Default
     @Column(nullable = false)
     private double rating = 0.0;
+
+    /** Geo-coordinates for the live map (null if not geocoded). */
+    private Double latitude;
+
+    private Double longitude;
 }
