@@ -12,6 +12,10 @@ export default defineConfig({
     },
   },
   server: {
+    // Listen on all network interfaces so you can open the app from your
+    // phone using your PC's LAN IP (http://<your-ip>:5173) — needed for the
+    // Medical ID QR code to be scannable on the same WiFi.
+    host: true,
     proxy: {
       '/api': {
         target: 'http://localhost:8080',
