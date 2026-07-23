@@ -62,7 +62,6 @@ function NotificationBell() {
   const unreadQuery = useQuery({
     queryKey: ['notifications', 'unread'],
     queryFn: async () => (await api.get<{ unread: number }>('/notifications/unread-count')).data,
-    refetchInterval: 30_000,
     retry: 1,
   })
   const unread = unreadQuery.data?.unread ?? 0

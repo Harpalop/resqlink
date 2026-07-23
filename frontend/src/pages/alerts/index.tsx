@@ -84,7 +84,7 @@ export default function AlertsPage() {
   const alertsQuery = useQuery({
     queryKey: ['disasters', isAdmin ? 'all' : 'active'],
     queryFn: isAdmin ? disasterApi.getAll : disasterApi.getActive,
-    refetchInterval: 60_000,
+    refetchInterval: 300_000,
   })
 
   const {
