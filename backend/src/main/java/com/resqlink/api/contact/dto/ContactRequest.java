@@ -15,6 +15,10 @@ public record ContactRequest(
         @Pattern(regexp = "^[+0-9 ()-]{7,20}$", message = "Enter a valid phone number")
         String phone,
 
+        @Size(max = 160, message = "Email is too long")
+        @jakarta.validation.constraints.Email(message = "Enter a valid email address")
+        String email,
+
         @Size(max = 40, message = "Relationship is too long")
         String relationship,
 

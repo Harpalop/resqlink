@@ -21,13 +21,14 @@ const MAX_CONTACTS = 5
 const contactSchema = z.object({
   name: z.string().min(2, 'Enter a name').max(80),
   phone: z.string().regex(/^[+0-9 ()-]{7,20}$/, 'Enter a valid phone number'),
+  email: z.string().email('Enter a valid email').or(z.literal('')),
   relationship: z.string(),
   priority: z.string(),
 })
 
 type ContactForm = z.infer<typeof contactSchema>
 
-const EMPTY_FORM: ContactForm = { name: '', phone: '', relationship: '', priority: '1' }
+const EMPTY_FORM: ContactForm = { name: '', phone: '', email: '', relationship: '', priority: '1' }
 
 export default function ContactsPage() {
   const queryClient = useQueryClient()
@@ -54,6 +55,7 @@ export default function ContactsPage() {
       const payload = {
         name: values.name,
         phone: values.phone,
+        email: values.email || null,
         relationship: values.relationship || null,
         priority: parseInt(values.priority, 10),
       }
@@ -78,6 +80,7 @@ export default function ContactsPage() {
     reset({
       name: contact.name,
       phone: contact.phone,
+      email: contact.email ?? '',
       relationship: contact.relationship ?? '',
       priority: contact.priority.toString(),
     })
@@ -139,6 +142,13 @@ export default function ContactsPage() {
                   placeholder="+91 98765 43210"
                   error={errors.phone?.message}
                   {...register('phone')}
+                />
+                <FormField
+                  label="Email"
+                  type="email"
+                  placeholder="priya@example.com"
+                  error={errors.email?.message}
+                  {...register('email')}
                 />
                 <SelectField
                   label="Relationship"
