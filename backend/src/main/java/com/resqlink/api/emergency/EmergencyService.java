@@ -8,6 +8,7 @@ import com.resqlink.api.notification.Notification;
 import com.resqlink.api.notification.NotificationService;
 import com.resqlink.api.profile.MedicalProfileRepository;
 import com.resqlink.api.user.User;
+import com.resqlink.api.websocket.WebSocketPushService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +32,7 @@ public class EmergencyService {
     private final EmergencyContactRepository contactRepository;
     private final MedicalProfileRepository profileRepository;
     private final NotificationService notificationService;
+    private final WebSocketPushService webSocketPushService;
 
     @Transactional
     public EmergencyResponse trigger(User user, TriggerRequest request) {
@@ -77,6 +81,14 @@ public class EmergencyService {
                 "SOS " + saved.getReference() + " activated",
                 "Your " + request.type().name().replace('_', ' ').toLowerCase()
                         + " emergency is live. Responders and contacts are being alerted.");
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        webSocketPushService.pushEmergencyToUser(user, saved);
+                        webSocketPushService.pushEmergencyToAdmins(saved);
+                    }
+                });
         return EmergencyResponse.from(saved);
     }
 
@@ -109,12 +121,20 @@ public class EmergencyService {
         emergency.addEvent(resolved ? "Marked safe" : "SOS cancelled",
                 resolved ? "The user confirmed they are safe" : "Cancelled by the user");
 
+        Emergency saved = emergencyRepository.save(emergency);
         notificationService.notify(user, Notification.Type.SOS,
-                "Emergency " + emergency.getReference() + (resolved ? " resolved" : " cancelled"),
+                "Emergency " + saved.getReference() + (resolved ? " resolved" : " cancelled"),
                 resolved ? "Glad you're safe. The emergency has been closed."
                         : "The SOS was cancelled and responders were stood down.");
-
-        return EmergencyResponse.from(emergencyRepository.save(emergency));
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        webSocketPushService.pushEmergencyToUser(user, saved);
+                        webSocketPushService.pushEmergencyToAdmins(saved);
+                    }
+                });
+        return EmergencyResponse.from(saved);
     }
 
     private String nextReference() {

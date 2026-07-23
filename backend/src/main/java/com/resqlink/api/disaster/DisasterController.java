@@ -1,6 +1,7 @@
 package com.resqlink.api.disaster;
 
 import com.resqlink.api.user.User;
+import com.resqlink.api.websocket.WebSocketPushService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -21,6 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @RestController
 @RequestMapping("/api/v1/disasters")
@@ -28,6 +31,7 @@ import java.util.UUID;
 public class DisasterController {
 
     private final DisasterAlertRepository alertRepository;
+    private final WebSocketPushService webSocketPushService;
 
     public record CreateAlertRequest(
             @NotNull DisasterAlert.Type type,
@@ -61,6 +65,13 @@ public class DisasterController {
                 .advice(request.advice())
                 .region(request.region())
                 .build());
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        webSocketPushService.pushDisasterAlert(alert, "CREATED");
+                    }
+                });
         return ResponseEntity.status(HttpStatus.CREATED).body(alert);
     }
 
@@ -74,7 +85,15 @@ public class DisasterController {
         alert.setTitle(request.title());
         alert.setAdvice(request.advice());
         alert.setRegion(request.region());
-        return alertRepository.save(alert);
+        DisasterAlert saved = alertRepository.save(alert);
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        webSocketPushService.pushDisasterAlert(saved, "UPDATED");
+                    }
+                });
+        return saved;
     }
 
     @PostMapping("/alerts/{alertId}/deactivate")
@@ -82,7 +101,15 @@ public class DisasterController {
     public DisasterAlert deactivate(@PathVariable UUID alertId) {
         DisasterAlert alert = findOrThrow(alertId);
         alert.setActive(false);
-        return alertRepository.save(alert);
+        DisasterAlert saved = alertRepository.save(alert);
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        webSocketPushService.pushDisasterAlert(saved, "DEACTIVATED");
+                    }
+                });
+        return saved;
     }
 
     @PostMapping("/alerts/{alertId}/activate")
@@ -90,7 +117,15 @@ public class DisasterController {
     public DisasterAlert activate(@PathVariable UUID alertId) {
         DisasterAlert alert = findOrThrow(alertId);
         alert.setActive(true);
-        return alertRepository.save(alert);
+        DisasterAlert saved = alertRepository.save(alert);
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        webSocketPushService.pushDisasterAlert(saved, "ACTIVATED");
+                    }
+                });
+        return saved;
     }
 
     private DisasterAlert findOrThrow(UUID alertId) {
