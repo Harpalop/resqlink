@@ -55,7 +55,13 @@ export default function MedicalIdPage() {
   const profile = profileQuery.data
   if (!profile) return null
 
-  const publicUrl = `${window.location.origin}/m/${profile.publicToken}`
+  // Where the QR code should point. In production this is your deployed
+  // domain (VITE_PUBLIC_APP_URL). Locally it falls back to whatever host the
+  // app is served from — so if you open the app on your phone via your PC's
+  // LAN IP (e.g. http://192.168.1.5:5173), the QR encodes that same IP and
+  // scanning it from another phone on the same WiFi just works.
+  const appOrigin = import.meta.env.VITE_PUBLIC_APP_URL ?? window.location.origin
+  const publicUrl = `${appOrigin}/m/${profile.publicToken}`
 
   const copyLink = async () => {
     await navigator.clipboard.writeText(publicUrl)
