@@ -18,6 +18,10 @@ public record ContactRequest(
         @Size(max = 40, message = "Relationship is too long")
         String relationship,
 
+        @Size(max = 160, message = "Email is too long")
+        @jakarta.validation.constraints.Email(message = "Enter a valid email address")
+        String email,
+
         @Min(value = 1, message = "Priority must be between 1 and 5")
         @Max(value = 5, message = "Priority must be between 1 and 5")
         Integer priority
