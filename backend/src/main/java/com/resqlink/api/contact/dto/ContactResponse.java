@@ -8,6 +8,7 @@ public record ContactResponse(
         UUID id,
         String name,
         String phone,
+        String email,
         String relationship,
         int priority
 ) {
@@ -16,6 +17,7 @@ public record ContactResponse(
                 contact.getId(),
                 contact.getName(),
                 contact.getPhone(),
+                contact.getEmail(),
                 contact.getRelationship(),
                 contact.getPriority()
         );
