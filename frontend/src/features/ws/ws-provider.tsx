@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/auth-context'
 import { connectWs, disconnectWs, subscribeWs, getWsState, type WsConnectionState } from '@/lib/websocket'
+import type { StompSubscription } from '@stomp/stompjs'
 
 interface WsContextValue {
   status: WsConnectionState
@@ -10,70 +11,25 @@ interface WsContextValue {
 const WsContext = createContext<WsContextValue>({ status: 'disconnected' })
 
 /**
- * Subscribes the current user's notification and emergency personal queues,
- * plus shared topics (disaster alerts, admin emergency broadcasts).
- *
- * Renders nothing — it is a side-effect-only component that lives inside
- * the real-time provider so its subscriptions are active for the whole app.
- */
-function WsSubscriptions() {
-  const queryClient = useQueryClient()
-  const { user } = useAuth()
-  const isAdmin = user?.role === 'ADMIN'
-
-  useEffect(() => {
-    const subs: Array<{ unsubscribe: () => void }> = []
-
-    const n = subscribeWs('/user/queue/notifications', () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] })
-      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread'] })
-    })
-    if (n) subs.push(n)
-
-    const e = subscribeWs('/user/queue/emergency', () => {
-      queryClient.invalidateQueries({ queryKey: ['sos'] })
-    })
-    if (e) subs.push(e)
-
-    const d = subscribeWs('/topic/disasters', () => {
-      queryClient.invalidateQueries({ queryKey: ['disasters'] })
-    })
-    if (d) subs.push(d)
-
-    if (isAdmin) {
-      const a = subscribeWs('/topic/emergencies', () => {
-        queryClient.invalidateQueries({ queryKey: ['sos'] })
-        queryClient.invalidateQueries({ queryKey: ['map', 'overview'] })
-      })
-      if (a) subs.push(a)
-    }
-
-    return () => subs.forEach((s) => s.unsubscribe())
-  }, [queryClient, isAdmin])
-
-  return null
-}
-
-/**
  * Manages the WebSocket STOMP connection lifecycle — connects when the
- * user is authenticated, disconnects on logout, and provides connection
- * status to children.
- *
- * Place this inside <AuthProvider> so useAuth() is available.
+ * user is authenticated, subscribes after the STOMP handshake completes,
+ * disconnects on logout, and provides connection status to children.
  */
 export function WsProvider({ children }: { children: React.ReactNode }) {
   const { user, status: authStatus } = useAuth()
+  const queryClient = useQueryClient()
   const [wsStatus, setWsStatus] = useState<WsConnectionState>(getWsState())
   const connectedRef = useRef(false)
+  const subsRef = useRef<StompSubscription[]>([])
 
-  const handleConnect = useCallback(() => {
-    connectedRef.current = true
-    setWsStatus('connected')
-  }, [])
+  const isAdmin = user?.role === 'ADMIN'
 
-  const handleDisconnect = useCallback(() => {
-    connectedRef.current = false
-    setWsStatus('disconnected')
+  // Clean up all subscriptions
+  const cleanupSubs = useCallback(() => {
+    subsRef.current.forEach((s) => {
+      try { s.unsubscribe() } catch { /* already unsubscribed */ }
+    })
+    subsRef.current = []
   }, [])
 
   useEffect(() => {
@@ -88,22 +44,62 @@ export function WsProvider({ children }: { children: React.ReactNode }) {
 
     setWsStatus('connecting')
     connectWs({
-      onConnect: handleConnect,
-      onDisconnect: handleDisconnect,
-      onError: () => handleDisconnect(),
+      // Subscriptions are established AFTER the STOMP handshake completes,
+      // not before — otherwise subscribeWs() returns null because the
+      // client is not yet connected.
+      onConnect: () => {
+        connectedRef.current = true
+        setWsStatus('connected')
+        cleanupSubs()
+
+        const qc = queryClient
+        const n = subscribeWs('/user/queue/notifications', () => {
+          qc.invalidateQueries({ queryKey: ['notifications'] })
+          qc.invalidateQueries({ queryKey: ['notifications', 'unread'] })
+        })
+        if (n) subsRef.current.push(n)
+
+        const e = subscribeWs('/user/queue/emergency', () => {
+          qc.invalidateQueries({ queryKey: ['sos'] })
+        })
+        if (e) subsRef.current.push(e)
+
+        const d = subscribeWs('/topic/disasters', () => {
+          qc.invalidateQueries({ queryKey: ['disasters'] })
+        })
+        if (d) subsRef.current.push(d)
+
+        if (isAdmin) {
+          const a = subscribeWs('/topic/emergencies', () => {
+            qc.invalidateQueries({ queryKey: ['sos'] })
+            qc.invalidateQueries({ queryKey: ['map', 'overview'] })
+          })
+          if (a) subsRef.current.push(a)
+        }
+      },
+      onDisconnect: () => {
+        connectedRef.current = false
+        setWsStatus('disconnected')
+        cleanupSubs()
+      },
+      onError: () => {
+        connectedRef.current = false
+        setWsStatus('disconnected')
+        cleanupSubs()
+      },
     })
 
     return () => {
+      cleanupSubs()
       disconnectWs()
       connectedRef.current = false
       setWsStatus('disconnected')
     }
-  }, [user, authStatus, handleConnect, handleDisconnect])
+  }, [user, authStatus, queryClient, isAdmin, cleanupSubs])
 
   return (
     <WsContext.Provider value={{ status: wsStatus }}>
       {children}
-      {authStatus === 'authenticated' && <WsSubscriptions />}
     </WsContext.Provider>
   )
 }
