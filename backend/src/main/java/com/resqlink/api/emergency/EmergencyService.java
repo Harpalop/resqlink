@@ -5,6 +5,7 @@ import com.resqlink.api.contact.EmergencyContactRepository;
 import com.resqlink.api.emergency.dto.EmergencyResponse;
 import com.resqlink.api.emergency.dto.TriggerRequest;
 import com.resqlink.api.notification.Notification;
+import com.resqlink.api.notification.EmailService;
 import com.resqlink.api.notification.NotificationService;
 import com.resqlink.api.profile.MedicalProfileRepository;
 import com.resqlink.api.user.User;
@@ -18,6 +19,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +32,7 @@ public class EmergencyService {
     private final EmergencyContactRepository contactRepository;
     private final MedicalProfileRepository profileRepository;
     private final NotificationService notificationService;
+    private final EmailService emailService;
 
     @Transactional
     public EmergencyResponse trigger(User user, TriggerRequest request) {
@@ -61,11 +65,15 @@ public class EmergencyService {
             emergency.addEvent("Location unavailable", "GPS permission denied or unsupported");
         }
 
-        long contactCount = contactRepository.countByUserId(user.getId());
+        var contacts = contactRepository.findByUserIdOrderByPriorityAscCreatedAtAsc(user.getId());
+        long emailed = contacts.stream()
+                .filter(c -> c.getEmail() != null && !c.getEmail().isBlank())
+                .count();
         emergency.addEvent("Contacts notified",
-                contactCount == 0
+                contacts.isEmpty()
                         ? "No emergency contacts configured — add some in Contacts"
-                        : contactCount + " emergency contact(s) alerted (SMS ships with Module 21)");
+                        : emailed + " of " + contacts.size()
+                        + " contact(s) alerted via email, SMS coming soon");
 
         profileRepository.findByUserId(user.getId())
                 .filter(profile -> profile.isMedicalIdEnabled())
@@ -77,6 +85,15 @@ public class EmergencyService {
                 "SOS " + saved.getReference() + " activated",
                 "Your " + request.type().name().replace('_', ' ').toLowerCase()
                         + " emergency is live. Responders and contacts are being alerted.");
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        emailService.sendSosAlert(user, saved, contacts.stream()
+                                .filter(c -> c.getEmail() != null && !c.getEmail().isBlank())
+                                .toList());
+                    }
+                });
         return EmergencyResponse.from(saved);
     }
 

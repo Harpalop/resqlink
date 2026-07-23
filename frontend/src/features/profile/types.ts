@@ -37,6 +37,7 @@ export interface EmergencyContact {
   id: string
   name: string
   phone: string
+  email: string | null
   relationship: string | null
   priority: number
 }
@@ -44,6 +45,7 @@ export interface EmergencyContact {
 export interface ContactPayload {
   name: string
   phone: string
+  email?: string | null
   relationship?: string | null
   priority?: number
 }
