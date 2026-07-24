@@ -57,6 +57,7 @@ public class DisasterController {
 
     @PostMapping("/alerts")
     @PreAuthorize("hasRole('ADMIN')")
+    @jakarta.transaction.Transactional
     public ResponseEntity<DisasterAlert> createAlert(@Valid @RequestBody CreateAlertRequest request) {
         DisasterAlert alert = alertRepository.save(DisasterAlert.builder()
                 .type(request.type())
@@ -77,6 +78,7 @@ public class DisasterController {
 
     @PutMapping("/alerts/{alertId}")
     @PreAuthorize("hasRole('ADMIN')")
+    @jakarta.transaction.Transactional
     public DisasterAlert updateAlert(@PathVariable UUID alertId,
                                      @Valid @RequestBody CreateAlertRequest request) {
         DisasterAlert alert = findOrThrow(alertId);
@@ -98,6 +100,7 @@ public class DisasterController {
 
     @PostMapping("/alerts/{alertId}/deactivate")
     @PreAuthorize("hasRole('ADMIN')")
+    @jakarta.transaction.Transactional
     public DisasterAlert deactivate(@PathVariable UUID alertId) {
         DisasterAlert alert = findOrThrow(alertId);
         alert.setActive(false);
@@ -114,6 +117,7 @@ public class DisasterController {
 
     @PostMapping("/alerts/{alertId}/activate")
     @PreAuthorize("hasRole('ADMIN')")
+    @jakarta.transaction.Transactional
     public DisasterAlert activate(@PathVariable UUID alertId) {
         DisasterAlert alert = findOrThrow(alertId);
         alert.setActive(true);

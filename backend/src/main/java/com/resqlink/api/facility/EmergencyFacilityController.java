@@ -1,6 +1,7 @@
 package com.resqlink.api.facility;
 
 import com.resqlink.api.common.exception.ApiException;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
@@ -90,7 +91,7 @@ public class EmergencyFacilityController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<FacilityDTO> create(@RequestBody FacilityRequest request) {
+    public ResponseEntity<FacilityDTO> create(@Valid @RequestBody FacilityRequest request) {
         EmergencyFacility facility = EmergencyFacility.builder()
                 .type(EmergencyFacility.Type.valueOf(request.type()))
                 .name(request.name().trim())
@@ -111,7 +112,7 @@ public class EmergencyFacilityController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public FacilityDTO update(@PathVariable UUID id, @RequestBody FacilityRequest request) {
+    public FacilityDTO update(@PathVariable UUID id, @Valid @RequestBody FacilityRequest request) {
         EmergencyFacility facility = findOrThrow(id);
         facility.setType(EmergencyFacility.Type.valueOf(request.type()));
         facility.setName(request.name().trim());
