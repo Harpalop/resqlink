@@ -2,6 +2,8 @@ package com.resqlink.api.notification;
 
 import com.resqlink.api.contact.EmergencyContact;
 import com.resqlink.api.emergency.Emergency;
+import com.resqlink.api.profile.MedicalProfile;
+import com.resqlink.api.profile.MedicalProfileRepository;
 import com.resqlink.api.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,14 +35,17 @@ public class EmailService {
     private final RestTemplate rest;
     private final String apiKey;
     private final String appUrl;
+    private final MedicalProfileRepository profileRepository;
 
     public EmailService(
             @Value("${RESEND_API_KEY:}") String apiKey,
             @Value("${VITE_PUBLIC_APP_URL:http://localhost:5173}") String appUrl,
-            RestTemplateBuilder builder) {
+            RestTemplateBuilder builder,
+            MedicalProfileRepository profileRepository) {
         this.apiKey = apiKey;
         this.appUrl = appUrl;
         this.rest = builder.build();
+        this.profileRepository = profileRepository;
     }
 
     /**
@@ -99,7 +104,10 @@ public class EmailService {
                 emergency.getLatitude(), emergency.getLongitude())
                 : "Location not available";
 
-        String medicalIdLink = appUrl + "/m/" + user.getId(); // user would need a public token here
+        String medicalIdLink = profileRepository.findByUserId(user.getId())
+                .map(MedicalProfile::getPublicToken)
+                .map(token -> appUrl + "/m/" + token)
+                .orElse("Not available");
 
         return """
                 <!DOCTYPE html>

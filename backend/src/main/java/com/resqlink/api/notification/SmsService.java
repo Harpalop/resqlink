@@ -2,6 +2,8 @@ package com.resqlink.api.notification;
 
 import com.resqlink.api.contact.EmergencyContact;
 import com.resqlink.api.emergency.Emergency;
+import com.resqlink.api.profile.MedicalProfile;
+import com.resqlink.api.profile.MedicalProfileRepository;
 import com.resqlink.api.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,18 +30,21 @@ public class SmsService {
     private final String authToken;
     private final String fromNumber;
     private final String appUrl;
+    private final MedicalProfileRepository profileRepository;
 
     public SmsService(
             @Value("${TWILIO_ACCOUNT_SID:}") String accountSid,
             @Value("${TWILIO_AUTH_TOKEN:}") String authToken,
             @Value("${TWILIO_FROM_NUMBER:}") String fromNumber,
             @Value("${VITE_PUBLIC_APP_URL:http://localhost:5173}") String appUrl,
-            RestTemplateBuilder builder) {
+            RestTemplateBuilder builder,
+            MedicalProfileRepository profileRepository) {
         this.accountSid = accountSid;
         this.authToken = authToken;
         this.fromNumber = fromNumber;
         this.appUrl = appUrl;
         this.rest = builder.build();
+        this.profileRepository = profileRepository;
     }
 
     @Async
@@ -51,7 +56,10 @@ public class SmsService {
                 emergency.getLatitude(), emergency.getLongitude())
                 : "Location not available";
 
-        String medicalIdLink = appUrl + "/m/" + user.getId();
+        String medicalIdLink = profileRepository.findByUserId(user.getId())
+                .map(MedicalProfile::getPublicToken)
+                .map(token -> appUrl + "/m/" + token)
+                .orElse("Not available");
 
         String smsBody = String.format(
                 "EMERGENCY SOS from %s\n" +
