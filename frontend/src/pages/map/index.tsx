@@ -2,31 +2,18 @@ import { useEffect, useMemo, useState } from 'react'
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { useTheme } from 'next-themes'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Hospital, Loader2, Phone, RefreshCw, Siren, Star } from 'lucide-react'
 import { GlassCard } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { MapStyleSwitcher, MAP_STYLES } from '@/components/ui/map-style-switcher'
 import { useAuth } from '@/features/auth/auth-context'
 import { mapApi, type EmergencyPin, type HospitalPin } from '@/features/map/api'
 import { cn } from '@/lib/utils'
 
 const INDIA_CENTER: [number, number] = [22.9, 78.6]
-
-const TILES = {
-  light: {
-    url: 'https://{s}.basemap.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  },
-  dark: {
-    url: 'https://{s}.basemap.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  },
-}
 
 // Leaflet renders marker HTML via innerHTML — the Tailwind classes below are
 // literal in this source file, so they're picked up at build time.
@@ -91,9 +78,8 @@ function StatPill({
 export default function MapPage() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
-  const { resolvedTheme } = useTheme()
-  const tiles = resolvedTheme === 'light' ? TILES.light : TILES.dark
 
+  const [mapStyleId, setMapStyleId] = useState('light')
   const [showHospitals, setShowHospitals] = useState(true)
   const [showEmergencies, setShowEmergencies] = useState(true)
 
@@ -161,6 +147,10 @@ export default function MapPage() {
         </div>
       </div>
 
+      <div className="flex justify-end">
+        <MapStyleSwitcher current={mapStyleId} onChange={setMapStyleId} />
+      </div>
+
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -179,7 +169,11 @@ export default function MapPage() {
             className="h-[560px] w-full lg:h-[calc(100vh-15rem)]"
             style={{ background: 'transparent' }}
           >
-            <TileLayer key={resolvedTheme} url={tiles.url} attribution={tiles.attribution} />
+            <TileLayer
+              key={mapStyleId}
+              url={MAP_STYLES.find((s) => s.id === mapStyleId)!.url}
+              attribution={MAP_STYLES.find((s) => s.id === mapStyleId)!.attribution}
+            />
             <MapResizer />
 
             {visibleHospitals.map((h) => (

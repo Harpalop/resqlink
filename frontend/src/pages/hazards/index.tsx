@@ -7,7 +7,6 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { useTheme } from 'next-themes'
 import {
   AlertCircle,
   AlertTriangle,
@@ -29,6 +28,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { GlassCard } from '@/components/ui/card'
+import { MapStyleSwitcher, MAP_STYLES } from '@/components/ui/map-style-switcher'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/ui/input'
@@ -41,17 +41,6 @@ import { getApiErrorMessage } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
 const INDIA_CENTER: [number, number] = [22.9, 78.6]
-
-const TILES = {
-  light: {
-    url: 'https://{s}.basemap.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CARTO',
-  },
-  dark: {
-    url: 'https://{s}.basemap.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CARTO',
-  },
-}
 
 const TYPE_META: Record<HazardReport['type'], { icon: LucideIcon; label: string; color: string }> = {
   BLOCKED_ROAD: { icon: Truck, label: 'Blocked Road', color: 'bg-amber-500' },
@@ -133,13 +122,11 @@ export default function HazardPage() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
   const queryClient = useQueryClient()
-  const { resolvedTheme } = useTheme()
-  const tiles = resolvedTheme === 'light' ? TILES.light : TILES.dark
-
   const [formOpen, setFormOpen] = useState(false)
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [locating, setLocating] = useState(false)
   const [filterType, setFilterType] = useState<string>('ALL')
+  const [mapStyleId, setMapStyleId] = useState('light')
 
   const hazardsQuery = useQuery({
     queryKey: ['hazards', isAdmin ? 'all' : 'active'],
@@ -305,7 +292,7 @@ export default function HazardPage() {
                   </p>
                   <div className="h-56 overflow-hidden rounded-xl border border-border">
                     <MapContainer center={selectedLocation ?? INDIA_CENTER} zoom={selectedLocation ? 14 : 5} className="h-full w-full" scrollWheelZoom>
-                      <TileLayer key={resolvedTheme} url={tiles.url} attribution={tiles.attribution} />
+                      <TileLayer key={mapStyleId} url={MAP_STYLES.find((s) => s.id === mapStyleId)!.url} attribution={MAP_STYLES.find((s) => s.id === mapStyleId)!.attribution} />
                       <ClickMarker onLocationSelect={(lat, lng) => setSelectedLocation({ lat, lng })} />
                     </MapContainer>
                   </div>
@@ -338,8 +325,11 @@ export default function HazardPage() {
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
           )}
+          <div className="absolute right-3 top-3 z-[1000]">
+            <MapStyleSwitcher current={mapStyleId} onChange={setMapStyleId} />
+          </div>
           <MapContainer center={INDIA_CENTER} zoom={5} className="h-[500px] w-full lg:h-[500px]" scrollWheelZoom>
-            <TileLayer key={resolvedTheme} url={tiles.url} attribution={tiles.attribution} />
+            <TileLayer key={mapStyleId} url={MAP_STYLES.find((s) => s.id === mapStyleId)!.url} attribution={MAP_STYLES.find((s) => s.id === mapStyleId)!.attribution} />
             <MapResizer />
             {filtered
               .filter((h) => h.status === 'ACTIVE')
