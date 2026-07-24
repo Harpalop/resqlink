@@ -51,15 +51,24 @@ public class MapController {
         }
     }
 
-    public record MapOverview(List<HospitalPin> hospitals, List<EmergencyPin> emergencies) {
+    public record FacilityPin(UUID id, String name, String city, String phone,
+                              String type, boolean emergencyDept, boolean bloodBank,
+                              boolean open24x7, double rating, double latitude, double longitude) {
+        static FacilityPin from(EmergencyFacility f) {
+            return new FacilityPin(f.getId(), f.getName(), f.getCity(), f.getPhone(),
+                    f.getType().name(), f.isEmergencyDept(), f.isBloodBank(),
+                    f.isOpen24x7(), f.getRating(), f.getLatitude(), f.getLongitude());
+        }
+    }
+
+    public record MapOverview(List<FacilityPin> facilities, List<EmergencyPin> emergencies) {
     }
 
     @GetMapping("/overview")
     @Transactional(readOnly = true)
     public MapOverview overview(@AuthenticationPrincipal User user) {
-        List<HospitalPin> hospitals = facilityRepository
-                .findByTypeInOrderByRatingDesc(List.of(Type.HOSPITAL)).stream()
-                .map(HospitalPin::from)
+        List<FacilityPin> facilities = facilityRepository.findAll().stream()
+                .map(FacilityPin::from)
                 .toList();
 
         boolean isAdmin = user.getRole() == Role.ADMIN;
@@ -72,6 +81,6 @@ public class MapController {
                 .map(e -> EmergencyPin.from(e, user.getId()))
                 .toList();
 
-        return new MapOverview(hospitals, emergencies);
+        return new MapOverview(facilities, emergencies);
     }
 }

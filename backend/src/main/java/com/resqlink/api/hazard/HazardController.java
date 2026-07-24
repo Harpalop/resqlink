@@ -71,7 +71,7 @@ public class HazardController {
             return hazardRepository.findByUserIdOrderByCreatedAtDesc(user.getId())
                     .stream().map(HazardDTO::from).toList();
         }
-        return hazardRepository.findAllByOrderByCreatedAtDesc()
+        return hazardRepository.findAllWithUserOrderByCreatedAtDesc()
                 .stream().map(HazardDTO::from).toList();
     }
 
