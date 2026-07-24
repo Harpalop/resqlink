@@ -12,7 +12,7 @@ import ContactsPage from '@/pages/contacts'
 import SosPage from '@/pages/sos'
 import BloodPage from '@/pages/blood'
 import FirstAidPage from '@/pages/first-aid'
-import HospitalsPage from '@/pages/hospitals'
+import FacilitiesPage from '@/pages/facilities'
 import MapPage from '@/pages/map'
 import HazardPage from '@/pages/hazards'
 import FamilyPage from '@/pages/family'
@@ -53,7 +53,8 @@ export default function App() {
             <Route path="/sos" element={<SosPage />} />
             <Route path="/blood" element={<BloodPage />} />
             <Route path="/first-aid" element={<FirstAidPage />} />
-            <Route path="/hospitals" element={<HospitalsPage />} />
+            <Route path="/facilities" element={<FacilitiesPage />} />
+            <Route path="/hospitals" element={<FacilitiesPage />} />
             <Route path="/map" element={<MapPage />} />
             <Route path="/hazards" element={<HazardPage />} />
             <Route path="/family" element={<FamilyPage />} />
