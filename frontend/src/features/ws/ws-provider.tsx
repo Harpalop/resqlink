@@ -69,6 +69,11 @@ export function WsProvider({ children }: { children: React.ReactNode }) {
         })
         if (d) subsRef.current.push(d)
 
+        const h = subscribeWs('/topic/hazards', () => {
+          qc.invalidateQueries({ queryKey: ['hazards'] })
+        })
+        if (h) subsRef.current.push(h)
+
         if (isAdmin) {
           const a = subscribeWs('/topic/emergencies', () => {
             qc.invalidateQueries({ queryKey: ['sos'] })
