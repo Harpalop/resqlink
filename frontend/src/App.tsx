@@ -13,6 +13,7 @@ import SosPage from '@/pages/sos'
 import BloodPage from '@/pages/blood'
 import FirstAidPage from '@/pages/first-aid'
 import HospitalsPage from '@/pages/hospitals'
+import MapPage from '@/pages/map'
 import FamilyPage from '@/pages/family'
 import TelemedicinePage from '@/pages/telemedicine'
 import AssistantPage from '@/pages/assistant'
@@ -52,6 +53,7 @@ export default function App() {
             <Route path="/blood" element={<BloodPage />} />
             <Route path="/first-aid" element={<FirstAidPage />} />
             <Route path="/hospitals" element={<HospitalsPage />} />
+            <Route path="/map" element={<MapPage />} />
             <Route path="/family" element={<FamilyPage />} />
             <Route path="/telemedicine" element={<TelemedicinePage />} />
             <Route path="/assistant" element={<AssistantPage />} />
