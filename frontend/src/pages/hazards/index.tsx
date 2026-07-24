@@ -29,6 +29,7 @@ import {
 } from 'lucide-react'
 import { GlassCard } from '@/components/ui/card'
 import { MapStyleSwitcher, MAP_STYLES } from '@/components/ui/map-style-switcher'
+import { MapControls } from '@/components/ui/map-controls'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/ui/input'
@@ -328,9 +329,12 @@ export default function HazardPage() {
           <div className="absolute right-3 top-3 z-[1000]">
             <MapStyleSwitcher current={mapStyleId} onChange={setMapStyleId} />
           </div>
-          <MapContainer center={INDIA_CENTER} zoom={5} className="h-[500px] w-full lg:h-[500px]" scrollWheelZoom>
+          <MapContainer center={INDIA_CENTER} zoom={5} className="h-[500px] w-full lg:h-[500px]" scrollWheelZoom zoomControl={false}>
             <TileLayer key={mapStyleId} url={MAP_STYLES.find((s) => s.id === mapStyleId)!.url} attribution={MAP_STYLES.find((s) => s.id === mapStyleId)!.attribution} />
             <MapResizer />
+            <div className="absolute right-2 bottom-2 z-[1000]">
+              <MapControls />
+            </div>
             {filtered
               .filter((h) => h.status === 'ACTIVE')
               .map((h) => (
