@@ -35,6 +35,9 @@ import { useAuth } from '@/features/auth/auth-context'
 import { dashboardApi, type AnalyticsData } from '@/features/dashboard/api'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
+import DoctorDashboard from './roles/doctor'
+import ResponderDashboard from './roles/responder'
+import HospitalAdminDashboard from './roles/hospital-admin'
 
 /* ─── Animated stagger container ──────────────────────────────── */
 const stagger = {
@@ -358,6 +361,14 @@ function ApiStatus() {
 /* ─── Main dashboard ──────────────────────────────────────────── */
 export default function DashboardPage() {
   const { user } = useAuth()
+  const role = user?.role as string
+
+  // Route to role-specific dashboards
+  if (role === 'DOCTOR' || role === 'NURSE') return <DoctorDashboard />
+  if (role === 'POLICE' || role === 'FIREFIGHTER' || role === 'RESCUE_TEAM' || role === 'AMBULANCE_OPERATOR') return <ResponderDashboard />
+  if (role === 'HOSPITAL_ADMIN') return <HospitalAdminDashboard />
+
+  // Default: citizen dashboard (current)
   const firstName = user?.fullName.split(' ')[0] ?? 'there'
 
   const statsQuery = useQuery({

@@ -1,16 +1,19 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation } from '@tanstack/react-query'
-import { AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { AlertCircle, ArrowRight, Check, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { AuthLayout } from '@/pages/auth/auth-layout'
 import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/ui/input'
 import { authApi } from '@/features/auth/api'
 import { useAuth } from '@/features/auth/auth-context'
+import { SELF_REGISTER_ROLES, ROLE_META, type Role } from '@/features/auth/types'
 import { getApiErrorMessage } from '@/lib/api'
+import { cn } from '@/lib/utils'
 
 const registerSchema = z
   .object({
@@ -38,6 +41,7 @@ export default function RegisterPage() {
   const { applyAuth } = useAuth()
   const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
+  const [selectedRole, setSelectedRole] = useState<Role>('CITIZEN')
 
   const {
     register,
@@ -59,6 +63,7 @@ export default function RegisterPage() {
       email: values.email,
       phone: values.phone || undefined,
       password: values.password,
+      role: selectedRole,
     })
   }
 
@@ -67,7 +72,7 @@ export default function RegisterPage() {
       <div className="mb-8">
         <h1 className="font-display text-3xl font-bold tracking-tight">Create your account</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Join the network that saves lives — free for citizens.
+          Join the network that saves lives — choose your role to get started.
         </p>
       </div>
 
@@ -78,7 +83,55 @@ export default function RegisterPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        {/* ─── Role Picker ────────────────────────────── */}
+        <div>
+          <p className="mb-3 text-sm font-medium text-foreground">I am a</p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+            {SELF_REGISTER_ROLES.map((role) => {
+              const meta = ROLE_META[role]
+              const active = selectedRole === role
+              return (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => setSelectedRole(role)}
+                  className={cn(
+                    'group relative flex flex-col items-center gap-2 rounded-2xl border p-4 text-center transition-all duration-300',
+                    active
+                      ? 'border-primary/50 bg-primary/10 shadow-md shadow-primary/10'
+                      : 'border-border/60 bg-background/40 hover:border-border hover:bg-background/60',
+                  )}
+                >
+                  <span className="text-2xl">{meta.icon}</span>
+                  <span className="text-sm font-semibold">{meta.label}</span>
+                  {active && (
+                    <motion.span
+                      layoutId="role-badge"
+                      className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground"
+                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    >
+                      <Check className="h-3 w-3" />
+                    </motion.span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={selectedRole}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="mt-3 text-xs text-muted-foreground"
+            >
+              {ROLE_META[selectedRole]?.description}
+            </motion.p>
+          </AnimatePresence>
+        </div>
+
+        {/* ─── Form Fields ──────────────────────────── */}
         <FormField
           label="Full name"
           placeholder="Aarav Sharma"
@@ -111,7 +164,7 @@ export default function RegisterPage() {
           trailing={
             <button
               type="button"
-              onClick={() => setShowPassword((visible) => !visible)}
+              onClick={() => setShowPassword((v) => !v)}
               className="text-muted-foreground transition-colors hover:text-foreground"
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
@@ -138,6 +191,7 @@ export default function RegisterPage() {
         >
           {registerMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
           {registerMutation.isPending ? 'Creating account…' : 'Create account'}
+          {!registerMutation.isPending && <ArrowRight className="h-4 w-4" />}
         </Button>
       </form>
 
