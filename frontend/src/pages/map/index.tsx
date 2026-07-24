@@ -9,6 +9,7 @@ import { GlassCard } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { MapStyleSwitcher, MAP_STYLES } from '@/components/ui/map-style-switcher'
+import { MapControls } from '@/components/ui/map-controls'
 import { useAuth } from '@/features/auth/auth-context'
 import { mapApi, type EmergencyPin, type HospitalPin } from '@/features/map/api'
 import { cn } from '@/lib/utils'
@@ -166,6 +167,7 @@ export default function MapPage() {
             center={INDIA_CENTER}
             zoom={5}
             scrollWheelZoom
+            zoomControl={false}
             className="h-[560px] w-full lg:h-[calc(100vh-15rem)]"
             style={{ background: 'transparent' }}
           >
@@ -175,6 +177,9 @@ export default function MapPage() {
               attribution={MAP_STYLES.find((s) => s.id === mapStyleId)!.attribution}
             />
             <MapResizer />
+            <div className="absolute right-2 bottom-2 z-[1000]">
+              <MapControls />
+            </div>
 
             {visibleHospitals.map((h) => (
               <Marker key={h.id} position={[h.latitude, h.longitude]} icon={hospitalIcon}>
