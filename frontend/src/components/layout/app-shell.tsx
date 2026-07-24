@@ -11,8 +11,8 @@ import {
   LayoutDashboard,
   LogOut,
   Map,
-  Menu,
   MapPin,
+  Menu,
   ScanLine,
   ShieldCheck,
   Siren,
@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
 import { GradientOrbs } from '@/components/effects/gradient-orbs'
 import { useAuth } from '@/features/auth/auth-context'
+import type { Role } from '@/features/auth/types'
 import { api } from '@/lib/api'
 import { cn, getInitials } from '@/lib/utils'
 
@@ -37,7 +38,7 @@ interface NavItem {
   label: string
   icon: LucideIcon
   soon?: boolean
-  adminOnly?: boolean
+  roles?: Role[]
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -47,16 +48,16 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/medical-id', label: 'Medical ID', icon: ScanLine },
   { to: '/profile', label: 'Profile', icon: UserRound },
   { to: '/contacts', label: 'Contacts', icon: Users },
-  { to: '/blood', label: 'Blood Network', icon: Droplets },
-  { to: '/telemedicine', label: 'Telemedicine', icon: Video },
+  { to: '/blood', label: 'Blood Network', icon: Droplets, roles: ['CITIZEN', 'VOLUNTEER', 'NGO'] },
+  { to: '/telemedicine', label: 'Telemedicine', icon: Video, roles: ['DOCTOR', 'NURSE', 'CITIZEN'] },
   { to: '/first-aid', label: 'First Aid', icon: Cross },
   { to: '/facilities', label: 'Emergency Services', icon: Cross },
   { to: '/map', label: 'Live Map', icon: Map },
   { to: '/hazards', label: 'Hazard Reports', icon: MapPin },
-  { to: '/family', label: 'Family Safety', icon: ShieldCheck },
+  { to: '/family', label: 'Family Safety', icon: ShieldCheck, roles: ['CITIZEN'] },
   { to: '/alerts', label: 'Disaster Alerts', icon: CloudLightning },
   { to: '/achievements', label: 'Achievements', icon: Trophy },
-  { to: '/admin', label: 'Admin', icon: ShieldCheck, adminOnly: true },
+  { to: '/admin', label: 'Admin', icon: ShieldCheck, roles: ['ADMIN'] },
 ]
 
 function NotificationBell() {
@@ -83,8 +84,9 @@ function NotificationBell() {
   )
 }
 
-function NavLinks({ onNavigate, isAdmin }: { onNavigate?: () => void; isAdmin: boolean }) {
-  const items = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin)
+function NavLinks({ onNavigate, user }: { onNavigate?: () => void; user: { role: string } | null }) {
+  const role = user?.role as import('@/features/auth/types').Role | undefined
+  const items = NAV_ITEMS.filter((item) => !item.roles || (role && item.roles.includes(role)))
   return (
     <nav className="flex flex-col gap-1">
       {items.map(({ to, label, icon: Icon, soon }) =>
@@ -135,7 +137,7 @@ export function AppShell() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const isAdmin = user?.role === 'ADMIN'
+  // Role-based nav filtering is handled inside NavLinks via item.roles
 
   const handleLogout = () => {
     logout()
@@ -149,7 +151,7 @@ export function AppShell() {
       {/* Desktop sidebar */}
       <aside className="glass-panel fixed inset-y-0 left-0 z-40 hidden w-64 flex-col overflow-y-auto border-y-0 border-l-0 p-5 lg:flex">
         <Logo className="mb-8 px-1" />
-        <NavLinks isAdmin={isAdmin} />
+        <NavLinks user={user} />
         <div className="mt-auto space-y-3">
           <div className="glass-panel flex items-center gap-3 rounded-xl p-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-violet-500 text-xs font-semibold text-white">
@@ -198,7 +200,7 @@ export function AppShell() {
             className="glass-panel fixed inset-x-0 top-16 z-40 overflow-hidden border-x-0 lg:hidden"
           >
             <div className="space-y-3 p-4">
-              <NavLinks onNavigate={() => setMobileOpen(false)} isAdmin={isAdmin} />
+              <NavLinks onNavigate={() => setMobileOpen(false)} user={user} />
               <Button
                 variant="outline"
                 size="sm"
