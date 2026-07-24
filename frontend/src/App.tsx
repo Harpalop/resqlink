@@ -14,6 +14,7 @@ import BloodPage from '@/pages/blood'
 import FirstAidPage from '@/pages/first-aid'
 import HospitalsPage from '@/pages/hospitals'
 import MapPage from '@/pages/map'
+import HazardPage from '@/pages/hazards'
 import FamilyPage from '@/pages/family'
 import TelemedicinePage from '@/pages/telemedicine'
 import AssistantPage from '@/pages/assistant'
@@ -54,6 +55,7 @@ export default function App() {
             <Route path="/first-aid" element={<FirstAidPage />} />
             <Route path="/hospitals" element={<HospitalsPage />} />
             <Route path="/map" element={<MapPage />} />
+            <Route path="/hazards" element={<HazardPage />} />
             <Route path="/family" element={<FamilyPage />} />
             <Route path="/telemedicine" element={<TelemedicinePage />} />
             <Route path="/assistant" element={<AssistantPage />} />
