@@ -22,6 +22,7 @@ import NotificationsPage from '@/pages/notifications'
 import AlertsPage from '@/pages/alerts'
 import AchievementsPage from '@/pages/achievements'
 import AdminPage from '@/pages/admin'
+import ChatPage from '@/pages/chat'
 import NotFoundPage from '@/pages/not-found'
 import { ProtectedRoute } from '@/features/auth/protected-route'
 import { AppShell } from '@/components/layout/app-shell'
@@ -63,6 +64,7 @@ export default function App() {
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/alerts" element={<AlertsPage />} />
             <Route path="/achievements" element={<AchievementsPage />} />
+            <Route path="/chat" element={<ChatPage />} />
             <Route path="/admin" element={<AdminPage />} />
           </Route>
         </Route>

@@ -109,6 +109,17 @@ public class WebSocketPushService {
             boolean active) {
     }
 
+    public record ChatMessagePayload(
+            UUID roomId, UUID senderId, String senderName,
+            String content, String createdAt) {
+    }
+
+    /* ─── Chat Messages ──────────────────────────────────── */
+
+    public void pushChatMessage(UUID roomId, Object dto) {
+        messagingTemplate.convertAndSend("/topic/chat/" + roomId, dto);
+    }
+
     public record HazardPayload(
             String action, UUID id, String type, String severity,
             String title, String description, double latitude,
