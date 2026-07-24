@@ -7,6 +7,7 @@ import com.resqlink.api.emergency.dto.TriggerRequest;
 import com.resqlink.api.notification.Notification;
 import com.resqlink.api.notification.EmailService;
 import com.resqlink.api.notification.NotificationService;
+import com.resqlink.api.notification.SmsService;
 import com.resqlink.api.profile.MedicalProfileRepository;
 import com.resqlink.api.user.User;
 import com.resqlink.api.websocket.WebSocketPushService;
@@ -35,6 +36,7 @@ public class EmergencyService {
     private final NotificationService notificationService;
     private final WebSocketPushService webSocketPushService;
     private final EmailService emailService;
+    private final SmsService smsService;
 
     @Transactional
     public EmergencyResponse trigger(User user, TriggerRequest request) {
@@ -97,6 +99,7 @@ public class EmergencyService {
                         emailService.sendSosAlert(user, saved, contacts.stream()
                                 .filter(c -> c.getEmail() != null && !c.getEmail().isBlank())
                                 .toList());
+                        smsService.sendSosAlert(user, saved, contacts);
                     }
                 });
         return EmergencyResponse.from(saved);
