@@ -13,6 +13,7 @@ import {
   Map,
   MapPin,
   Menu,
+  MessageCircle,
   ScanLine,
   ShieldCheck,
   Siren,
@@ -56,6 +57,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/hazards', label: 'Hazard Reports', icon: MapPin },
   { to: '/family', label: 'Family Safety', icon: ShieldCheck, roles: ['CITIZEN'] },
   { to: '/alerts', label: 'Disaster Alerts', icon: CloudLightning },
+  { to: '/chat', label: 'Chat', icon: MessageCircle },
   { to: '/achievements', label: 'Achievements', icon: Trophy },
   { to: '/admin', label: 'Admin', icon: ShieldCheck, roles: ['ADMIN'] },
 ]
