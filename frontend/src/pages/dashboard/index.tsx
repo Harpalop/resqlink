@@ -61,25 +61,26 @@ interface StatTileProps {
 
 function StatTile({ icon: Icon, label, value, suffix = '', gradient, to }: StatTileProps) {
   const body = (
-    <GlassCard className="group h-full p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/10">
-      <div className="flex items-start justify-between">
+    <GlassCard className="group relative h-full p-6 transition-all duration-500 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/20">
+      <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/5 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="relative z-10 flex items-start justify-between">
         <span
           className={cn(
-            'flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-md transition-transform duration-300 group-hover:scale-110',
+            'flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-lg transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3',
             gradient,
           )}
         >
-          <Icon className="h-5 w-5" />
+          <Icon className="h-6 w-6" />
         </span>
-        <ArrowRight className="h-4 w-4 text-muted-foreground/50 transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+        {to && <ArrowRight className="h-5 w-5 text-muted-foreground/30 transition-all duration-300 group-hover:translate-x-1 group-hover:-translate-y-1 group-hover:text-primary" />}
       </div>
-      <p className="font-display mt-4 text-3xl font-bold">
-        <AnimatedCounter to={value} suffix={suffix} duration={1.2} />
+      <p className="relative z-10 mt-6 font-display text-4xl font-bold tracking-tight">
+        <AnimatedCounter to={value} suffix={suffix} duration={1.5} />
       </p>
-      <p className="mt-0.5 text-sm font-medium">{label}</p>
+      <p className="relative z-10 mt-1 text-sm font-medium text-muted-foreground transition-colors group-hover:text-foreground">{label}</p>
     </GlassCard>
   )
-  return to ? <Link to={to}>{body}</Link> : body
+  return to ? <Link to={to} className="block h-full">{body}</Link> : body
 }
 
 /* ─── Chart theme colors ────────────────────────────────────── */
@@ -358,17 +359,8 @@ function ApiStatus() {
   )
 }
 
-/* ─── Main dashboard ──────────────────────────────────────────── */
-export default function DashboardPage() {
+function CitizenDashboard() {
   const { user } = useAuth()
-  const role = user?.role as string
-
-  // Route to role-specific dashboards
-  if (role === 'DOCTOR' || role === 'NURSE') return <DoctorDashboard />
-  if (role === 'POLICE' || role === 'FIREFIGHTER' || role === 'RESCUE_TEAM' || role === 'AMBULANCE_OPERATOR') return <ResponderDashboard />
-  if (role === 'HOSPITAL_ADMIN') return <HospitalAdminDashboard />
-
-  // Default: citizen dashboard (current)
   const firstName = user?.fullName.split(' ')[0] ?? 'there'
 
   const statsQuery = useQuery({
@@ -386,28 +378,79 @@ export default function DashboardPage() {
   const analytics = analyticsQuery.data
 
   return (
-    <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-6">
-      {/* Header */}
-      <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">
-            Welcome back, {firstName}
-          </h1>
-          <p className="mt-1.5 text-muted-foreground">
-            Here's what's happening with your emergency network.
-          </p>
+    <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-8 pb-12">
+      {/* Hero Header */}
+      <motion.div variants={fadeUp} className="relative overflow-hidden rounded-[2rem] bg-card p-8 sm:p-12 border border-border/50 shadow-xl shadow-black/5 dark:shadow-black/20 bg-grid">
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 opacity-40 animate-pulse-slow pointer-events-none">
+           <div className="w-96 h-96 bg-primary/20 rounded-full blur-[100px]" />
         </div>
-        <ApiStatus />
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 opacity-30 animate-pulse-slow pointer-events-none" style={{ animationDelay: '1s' }}>
+           <div className="w-72 h-72 bg-emerald-500/20 rounded-full blur-[80px]" />
+        </div>
+        
+        <div className="relative z-10 flex flex-wrap items-start justify-between gap-6">
+          <div className="max-w-3xl">
+            <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
+              Welcome back, <span className="text-aurora">{firstName}</span>
+            </h1>
+            <p className="mt-5 text-lg sm:text-xl text-muted-foreground leading-relaxed max-w-2xl">
+              Your comprehensive emergency response network is active. Keep an eye on local alerts, manage your medical profile, and respond to SOS requests nearby.
+            </p>
+          </div>
+          <div className="flex-shrink-0">
+            <ApiStatus />
+          </div>
+        </div>
       </motion.div>
 
-      {/* Stat tiles */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <StatTile icon={Users} label="Network Users" value={stats?.networkUsers ?? 0} gradient="from-blue-500 to-cyan-400" />
-        <StatTile icon={Siren} label="Your SOS" value={stats?.myEmergencies ?? 0} gradient="from-rose-500 to-red-600" to="/sos" />
-        <StatTile icon={HeartHandshake} label="Blood Donors" value={stats?.availableDonors ?? 0} gradient="from-rose-500 to-pink-500" to="/blood" />
-        <StatTile icon={Droplets} label="Blood Requests" value={stats?.openBloodRequests ?? 0} gradient="from-violet-500 to-fuchsia-500" to="/blood" />
-        <StatTile icon={ScanLine} label="My Emergencies" value={stats?.myActiveEmergencies ?? 0} suffix=" active" gradient="from-emerald-500 to-teal-400" to="/sos" />
-      </div>
+      {/* Quick Actions (Bento Grid Style) */}
+      <motion.div variants={fadeUp}>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { label: 'Emergency SOS', to: '/sos', gradient: 'from-rose-500 to-red-600', icon: Siren, borderGlow: 'hover:border-rose-500/50 hover:shadow-rose-500/20', sub: 'Trigger immediate help' },
+            { label: 'AI Assistant', to: '/assistant', gradient: 'from-violet-500 to-fuchsia-500', icon: Bot, borderGlow: 'hover:border-violet-500/50 hover:shadow-violet-500/20', sub: 'Ask medical queries' },
+            { label: 'Medical ID', to: '/medical-id', gradient: 'from-blue-500 to-cyan-400', icon: ScanLine, borderGlow: 'hover:border-cyan-500/50 hover:shadow-cyan-500/20', sub: 'Manage health data' },
+            { label: 'Blood Network', to: '/blood', gradient: 'from-rose-500 to-pink-500', icon: Droplets, borderGlow: 'hover:border-pink-500/50 hover:shadow-pink-500/20', sub: 'Donate or request blood' },
+          ].map((action) => (
+            <Link
+              key={action.to}
+              to={action.to}
+              className={cn(
+                "group relative overflow-hidden flex flex-col gap-4 rounded-[1.5rem] border border-border/60 bg-card p-6 transition-all duration-500 hover:-translate-y-1.5 shadow-lg shadow-black/5 dark:shadow-black/20 btn-shine",
+                action.borderGlow
+              )}
+            >
+              <div className="flex items-start justify-between">
+                <span className={cn('flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-lg transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-3', action.gradient)}>
+                  <action.icon className="h-7 w-7" />
+                </span>
+                <div className="rounded-full bg-muted/50 p-2 text-muted-foreground/50 transition-colors duration-300 group-hover:bg-foreground/5 group-hover:text-foreground">
+                  <ArrowRight className="h-5 w-5 -rotate-45 transition-transform duration-300 group-hover:rotate-0" />
+                </div>
+              </div>
+              <div className="mt-2">
+                <h3 className="font-semibold text-xl tracking-tight">{action.label}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{action.sub}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Network Overview Stats */}
+      <motion.div variants={fadeUp}>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-2xl font-bold tracking-tight">Network Overview</h2>
+          <Badge variant="outline" className="text-xs backdrop-blur-md">Live Updates</Badge>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <StatTile icon={Users} label="Network Users" value={stats?.networkUsers ?? 0} gradient="from-blue-500 to-cyan-400" />
+          <StatTile icon={Siren} label="Your SOS" value={stats?.myEmergencies ?? 0} gradient="from-rose-500 to-red-600" to="/sos" />
+          <StatTile icon={HeartHandshake} label="Blood Donors" value={stats?.availableDonors ?? 0} gradient="from-rose-500 to-pink-500" to="/blood" />
+          <StatTile icon={Droplets} label="Blood Requests" value={stats?.openBloodRequests ?? 0} gradient="from-violet-500 to-fuchsia-500" to="/blood" />
+          <StatTile icon={ScanLine} label="Active SOS" value={stats?.myActiveEmergencies ?? 0} suffix=" active" gradient="from-emerald-500 to-teal-400" to="/sos" />
+        </div>
+      </motion.div>
 
       {/* Charts row 1: Trend + Type Pie */}
       {analytics ? (
@@ -417,43 +460,29 @@ export default function DashboardPage() {
         </div>
       ) : analyticsQuery.isPending ? (
         <div className="grid gap-6 lg:grid-cols-2">
-          <Skeleton className="h-[320px]" />
-          <Skeleton className="h-[320px]" />
+          <Skeleton className="h-[340px] rounded-[2rem]" />
+          <Skeleton className="h-[340px] rounded-[2rem]" />
         </div>
       ) : null}
 
       {/* Charts row 2: Hourly + Donors */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {analytics ? <HourlyChart data={analytics.hourly} /> : <Skeleton className="h-[320px]" />}
-        {stats ? <DonorsChart stats={stats} /> : <Skeleton className="h-[320px]" />}
+        {analytics ? <HourlyChart data={analytics.hourly} /> : <Skeleton className="h-[340px] rounded-[2rem]" />}
+        {stats ? <DonorsChart stats={stats} /> : <Skeleton className="h-[340px] rounded-[2rem]" />}
       </div>
-
-      {/* Quick actions */}
-      <motion.div variants={fadeUp}>
-        <GlassCard className="p-6">
-          <h2 className="mb-4 font-semibold">Quick Actions</h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { label: 'Emergency SOS', to: '/sos', gradient: 'from-rose-500 to-red-600', icon: Siren },
-              { label: 'AI Assistant', to: '/assistant', gradient: 'from-violet-500 to-fuchsia-500', icon: Bot },
-              { label: 'Medical ID', to: '/medical-id', gradient: 'from-blue-500 to-cyan-400', icon: ScanLine },
-              { label: 'Blood Network', to: '/blood', gradient: 'from-rose-500 to-pink-500', icon: Droplets },
-            ].map((action) => (
-              <Link
-                key={action.to}
-                to={action.to}
-                className="group flex items-center gap-3 rounded-xl border border-border/60 bg-background/40 p-4 transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10"
-              >
-                <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white', action.gradient)}>
-                  <action.icon className="h-5 w-5" />
-                </span>
-                <span className="font-medium">{action.label}</span>
-                <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground/50 transition-transform group-hover:translate-x-1 group-hover:text-primary" />
-              </Link>
-            ))}
-          </div>
-        </GlassCard>
-      </motion.div>
     </motion.div>
   )
+}
+
+/* ─── Main dashboard ──────────────────────────────────────────── */
+export default function DashboardPage() {
+  const { user } = useAuth()
+  const role = user?.role as string
+
+  // Route to role-specific dashboards
+  if (role === 'DOCTOR' || role === 'NURSE') return <DoctorDashboard />
+  if (role === 'POLICE' || role === 'FIREFIGHTER' || role === 'RESCUE_TEAM' || role === 'AMBULANCE_OPERATOR') return <ResponderDashboard />
+  if (role === 'HOSPITAL_ADMIN') return <HospitalAdminDashboard />
+
+  return <CitizenDashboard />
 }

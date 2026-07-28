@@ -1,7 +1,9 @@
 package com.resqlink.api.chat;
 
 import com.resqlink.api.common.exception.ApiException;
+import com.resqlink.api.user.Role;
 import com.resqlink.api.user.User;
+import com.resqlink.api.user.UserRepository;
 import com.resqlink.api.websocket.WebSocketPushService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -13,13 +15,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,6 +28,7 @@ public class ChatController {
 
     private final ChatRoomRepository roomRepository;
     private final ChatMessageRepository messageRepository;
+    private final UserRepository userRepository;
     private final WebSocketPushService webSocketPushService;
 
     public record CreateRoomRequest(
@@ -41,16 +40,33 @@ public class ChatController {
             @NotBlank @Size(max = 500) String content
     ) {}
 
-    public record RoomDTO(UUID id, String name, String description, UUID createdBy, String createdAt) {
+    public record RoomDTO(UUID id, String name, String description, String type, UUID createdBy, String createdAt) {
         static RoomDTO from(ChatRoom r) {
-            return new RoomDTO(r.getId(), r.getName(), r.getDescription(), r.getCreatedBy(), r.getCreatedAt().toString());
+            Instant created = r.getCreatedAt() != null ? r.getCreatedAt() : Instant.now();
+            return new RoomDTO(r.getId(), r.getName(), r.getDescription(), r.getType() != null ? r.getType().name() : "GROUP", r.getCreatedBy(), created.toString());
         }
     }
 
     public record MessageDTO(UUID id, UUID roomId, UUID senderId, String senderName, String content, String createdAt) {
         static MessageDTO from(ChatMessage m) {
-            return new MessageDTO(m.getId(), m.getRoomId(), m.getSenderId(), m.getSenderName(), m.getContent(), m.getCreatedAt().toString());
+            Instant created = m.getCreatedAt() != null ? m.getCreatedAt() : Instant.now();
+            return new MessageDTO(m.getId(), m.getRoomId(), m.getSenderId(), m.getSenderName(), m.getContent(), created.toString());
         }
+    }
+
+    public record UserSummaryDTO(UUID id, String fullName, String email, Role role) {
+        static UserSummaryDTO from(User u) {
+            return new UserSummaryDTO(u.getId(), u.getFullName(), u.getEmail(), u.getRole());
+        }
+    }
+
+    @GetMapping("/users")
+    @Transactional(readOnly = true)
+    public List<UserSummaryDTO> listUsers(@AuthenticationPrincipal User currentUser) {
+        return userRepository.findAll().stream()
+                .filter(u -> !u.getId().equals(currentUser.getId()))
+                .map(UserSummaryDTO::from)
+                .toList();
     }
 
     @PostMapping("/rooms")
@@ -64,6 +80,41 @@ public class ChatController {
                 .createdBy(user.getId())
                 .type(ChatRoom.Type.GROUP)
                 .build());
+        return ResponseEntity.status(HttpStatus.CREATED).body(RoomDTO.from(room));
+    }
+
+    @PostMapping("/direct/{targetUserId}")
+    @Transactional
+    public ResponseEntity<RoomDTO> getOrCreateDirectRoom(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID targetUserId) {
+        if (currentUser.getId().equals(targetUserId)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Cannot start direct chat with yourself");
+        }
+
+        User targetUser = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+
+        // Generate consistent room name for 1-on-1 chat
+        String roomName = "Direct: " + currentUser.getFullName() + " & " + targetUser.getFullName();
+
+        // Check if direct room already exists
+        ChatRoom existing = roomRepository.findAll().stream()
+                .filter(r -> r.getType() == ChatRoom.Type.DIRECT && r.getName().equals(roomName))
+                .findFirst()
+                .orElse(null);
+
+        if (existing != null) {
+            return ResponseEntity.ok(RoomDTO.from(existing));
+        }
+
+        ChatRoom room = roomRepository.save(ChatRoom.builder()
+                .name(roomName)
+                .description("1-on-1 direct conversation")
+                .createdBy(currentUser.getId())
+                .type(ChatRoom.Type.DIRECT)
+                .build());
+
         return ResponseEntity.status(HttpStatus.CREATED).body(RoomDTO.from(room));
     }
 
@@ -92,7 +143,7 @@ public class ChatController {
         if (!roomRepository.existsById(roomId)) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Chat room not found");
         }
-        ChatMessage message = messageRepository.save(ChatMessage.builder()
+        ChatMessage message = messageRepository.saveAndFlush(ChatMessage.builder()
                 .roomId(roomId)
                 .senderId(user.getId())
                 .senderName(user.getFullName())

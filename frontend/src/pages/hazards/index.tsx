@@ -119,6 +119,8 @@ type ReportForm = z.infer<typeof reportSchema>
 const EMPTY_FORM: ReportForm = { type: 'OTHER', severity: 'MEDIUM', title: '', description: '' }
 
 // ─── Page ───────────────────────────────────────────────────
+const EMPTY_HAZARDS: HazardReport[] = []
+
 export default function HazardPage() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
@@ -198,7 +200,7 @@ export default function HazardPage() {
     )
   }
 
-  const hazards = hazardsQuery.data ?? []
+  const hazards = hazardsQuery.data ?? EMPTY_HAZARDS
   const filtered = useMemo(
     () => (filterType === 'ALL' ? hazards : hazards.filter((h) => h.type === filterType)),
     [hazards, filterType],

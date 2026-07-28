@@ -99,6 +99,9 @@ function StatPill({
   )
 }
 
+const EMPTY_FACILITIES: FacilityPin[] = []
+const EMPTY_EMERGENCIES: EmergencyPin[] = []
+
 export default function MapPage() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
@@ -113,15 +116,15 @@ export default function MapPage() {
     refetchInterval: 60_000,
   })
 
-  const facilities = overviewQuery.data?.facilities ?? []
-  const emergencies = overviewQuery.data?.emergencies ?? []
+  const facilities = overviewQuery.data?.facilities ?? EMPTY_FACILITIES
+  const emergencies = overviewQuery.data?.emergencies ?? EMPTY_EMERGENCIES
 
   const visibleFacilities = useMemo(
-    () => (showFacilities ? facilities : []),
+    () => (showFacilities ? facilities : EMPTY_FACILITIES),
     [showFacilities, facilities],
   )
   const visibleEmergencies = useMemo(
-    () => (showEmergencies ? emergencies : []),
+    () => (showEmergencies ? emergencies : EMPTY_EMERGENCIES),
     [showEmergencies, emergencies],
   )
 
