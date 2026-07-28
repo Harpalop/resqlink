@@ -441,7 +441,7 @@ function CitizenDashboard() {
       <motion.div variants={fadeUp}>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold tracking-tight">Network Overview</h2>
-          <Badge variant="outline" className="text-xs backdrop-blur-md">Live Updates</Badge>
+          <Badge variant="default" className="bg-transparent border-primary/30 text-primary hover:bg-primary/10">Live Updates</Badge>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <StatTile icon={Users} label="Network Users" value={stats?.networkUsers ?? 0} gradient="from-blue-500 to-cyan-400" />

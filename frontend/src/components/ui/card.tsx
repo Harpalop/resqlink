@@ -1,4 +1,4 @@
-import { type ComponentPropsWithRef, MouseEvent } from 'react'
+import { type ComponentPropsWithRef, type MouseEvent } from 'react'
 import { cn } from '@/lib/utils'
 
 export function GlassCard({ className, ...props }: ComponentPropsWithRef<'div'>) {
