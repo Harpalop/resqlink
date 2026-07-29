@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -37,9 +38,17 @@ public class DisasterController {
     ) {
     }
 
+    /** Public feed — only currently active alerts, newest first. */
     @GetMapping("/alerts")
     public List<DisasterAlert> activeAlerts() {
         return alertRepository.findByActiveTrueOrderByCreatedAtDesc();
+    }
+
+    /** Admin management view — every alert, including deactivated ones. */
+    @GetMapping("/alerts/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<DisasterAlert> allAlerts() {
+        return alertRepository.findAllByOrderByCreatedAtDesc();
     }
 
     @PostMapping("/alerts")
@@ -55,14 +64,39 @@ public class DisasterController {
         return ResponseEntity.status(HttpStatus.CREATED).body(alert);
     }
 
+    @PutMapping("/alerts/{alertId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public DisasterAlert updateAlert(@PathVariable UUID alertId,
+                                     @Valid @RequestBody CreateAlertRequest request) {
+        DisasterAlert alert = findOrThrow(alertId);
+        alert.setType(request.type());
+        alert.setSeverity(request.severity());
+        alert.setTitle(request.title());
+        alert.setAdvice(request.advice());
+        alert.setRegion(request.region());
+        return alertRepository.save(alert);
+    }
+
     @PostMapping("/alerts/{alertId}/deactivate")
     @PreAuthorize("hasRole('ADMIN')")
     public DisasterAlert deactivate(@PathVariable UUID alertId) {
-        DisasterAlert alert = alertRepository.findById(alertId)
-                .orElseThrow(() -> new com.resqlink.api.common.exception.ApiException(
-                        HttpStatus.NOT_FOUND, "Alert not found"));
+        DisasterAlert alert = findOrThrow(alertId);
         alert.setActive(false);
         return alertRepository.save(alert);
+    }
+
+    @PostMapping("/alerts/{alertId}/activate")
+    @PreAuthorize("hasRole('ADMIN')")
+    public DisasterAlert activate(@PathVariable UUID alertId) {
+        DisasterAlert alert = findOrThrow(alertId);
+        alert.setActive(true);
+        return alertRepository.save(alert);
+    }
+
+    private DisasterAlert findOrThrow(UUID alertId) {
+        return alertRepository.findById(alertId)
+                .orElseThrow(() -> new com.resqlink.api.common.exception.ApiException(
+                        HttpStatus.NOT_FOUND, "Alert not found"));
     }
 
     /** Seeds one sample alert so the UI has something to show. */
