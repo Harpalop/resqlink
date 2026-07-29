@@ -37,7 +37,13 @@ public class ChatController {
     ) {}
 
     public record SendMessageRequest(
-            @NotBlank @Size(max = 500) String content
+            @Size(max = 500) String content,
+            String fileUrl,
+            String fileName,
+            String fileType,
+            Double latitude,
+            Double longitude,
+            String messageType
     ) {}
 
     public record RoomDTO(UUID id, String name, String description, String type, UUID createdBy, String createdAt) {
@@ -47,16 +53,44 @@ public class ChatController {
         }
     }
 
-    public record MessageDTO(UUID id, UUID roomId, UUID senderId, String senderName, String content, String createdAt) {
+    public record MessageDTO(
+            String eventType,
+            UUID id,
+            UUID roomId,
+            UUID senderId,
+            String senderName,
+            String content,
+            String fileUrl,
+            String fileName,
+            String fileType,
+            Double latitude,
+            Double longitude,
+            String messageType,
+            String status,
+            String createdAt) {
         static MessageDTO from(ChatMessage m) {
             Instant created = m.getCreatedAt() != null ? m.getCreatedAt() : Instant.now();
-            return new MessageDTO(m.getId(), m.getRoomId(), m.getSenderId(), m.getSenderName(), m.getContent(), created.toString());
+            return new MessageDTO(
+                    "MESSAGE",
+                    m.getId(),
+                    m.getRoomId(),
+                    m.getSenderId(),
+                    m.getSenderName(),
+                    m.getContent(),
+                    m.getFileUrl(),
+                    m.getFileName(),
+                    m.getFileType(),
+                    m.getLatitude(),
+                    m.getLongitude(),
+                    m.getType() != null ? m.getType().name() : MessageType.TEXT.name(),
+                    m.getStatus() != null ? m.getStatus().name() : MessageStatus.SENT.name(),
+                    created.toString());
         }
     }
 
-    public record UserSummaryDTO(UUID id, String fullName, String email, Role role) {
+    public record UserSummaryDTO(UUID id, String fullName, String email, Role role, String profilePictureUrl) {
         static UserSummaryDTO from(User u) {
-            return new UserSummaryDTO(u.getId(), u.getFullName(), u.getEmail(), u.getRole());
+            return new UserSummaryDTO(u.getId(), u.getFullName(), u.getEmail(), u.getRole(), u.getProfilePictureUrl());
         }
     }
 
@@ -143,11 +177,28 @@ public class ChatController {
         if (!roomRepository.existsById(roomId)) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Chat room not found");
         }
+        
+        MessageType resolvedType = MessageType.TEXT;
+        if (request.messageType() != null) {
+            try { resolvedType = MessageType.valueOf(request.messageType()); } catch (Exception e) {}
+        } else if (request.fileUrl() != null) {
+            resolvedType = MessageType.FILE;
+        } else if (request.latitude() != null && request.longitude() != null) {
+            resolvedType = MessageType.LOCATION;
+        }
+
         ChatMessage message = messageRepository.saveAndFlush(ChatMessage.builder()
                 .roomId(roomId)
                 .senderId(user.getId())
                 .senderName(user.getFullName())
-                .content(request.content().trim())
+                .content(request.content() != null ? request.content().trim() : "")
+                .fileUrl(request.fileUrl())
+                .fileName(request.fileName())
+                .fileType(request.fileType())
+                .latitude(request.latitude())
+                .longitude(request.longitude())
+                .type(resolvedType)
+                .status(MessageStatus.SENT)
                 .build());
         MessageDTO dto = MessageDTO.from(message);
         TransactionSynchronizationManager.registerSynchronization(
@@ -158,5 +209,13 @@ public class ChatController {
                     }
                 });
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+    }
+
+    @PostMapping("/rooms/{roomId}/typing")
+    public ResponseEntity<Void> sendTyping(
+            @AuthenticationPrincipal User user,
+            @PathVariable UUID roomId) {
+        webSocketPushService.pushTypingIndicator(roomId, user);
+        return ResponseEntity.ok().build();
     }
 }

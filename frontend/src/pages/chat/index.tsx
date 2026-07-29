@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { GlassCard } from '@/components/ui/card'
 import { useAuth } from '@/features/auth/auth-context'
 import { chatApi, type ChatRoom } from '@/features/chat/api'
-import { subscribeWs } from '@/lib/websocket'
 import { ChatSidebar } from './components/ChatSidebar'
 import { ChatArea } from './components/ChatArea'
 
@@ -12,6 +11,7 @@ export default function ChatPage() {
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<'rooms' | 'direct'>('rooms')
   const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null)
+  const [typingUser, setTypingUser] = useState<string | null>(null)
 
   const roomsQuery = useQuery({
     queryKey: ['chat', 'rooms'],
@@ -30,8 +30,8 @@ export default function ChatPage() {
   })
 
   const sendMutation = useMutation({
-    mutationFn: ({ roomId, content }: { roomId: string; content: string }) =>
-      chatApi.sendMessage(roomId, content),
+    mutationFn: ({ roomId, payload }: { roomId: string; payload: any }) =>
+      chatApi.sendMessage(roomId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chat', 'messages', selectedRoom?.id] })
     },
@@ -64,20 +64,55 @@ export default function ChatPage() {
     }
   }, [selectedRoom, roomsQuery.data])
 
-  // Subscribe to the active room via WebSocket
+  // Track the active room in localStorage for the GlobalChatListener
   useEffect(() => {
-    if (!selectedRoom) return
-    const sub = subscribeWs(`/topic/chat/${selectedRoom.id}`, () => {
-      queryClient.invalidateQueries({ queryKey: ['chat', 'messages', selectedRoom.id] })
-    })
-    return () => sub?.unsubscribe()
-  }, [selectedRoom, queryClient])
+    if (selectedRoom) {
+      localStorage.setItem('last_active_chat_room', selectedRoom.id)
+    } else {
+      localStorage.removeItem('last_active_chat_room')
+    }
+    
+    // When unmounting, we should clear it so global notifications resume for this room
+    return () => {
+      localStorage.removeItem('last_active_chat_room')
+    }
+  }, [selectedRoom])
+
+  // Listen to events from GlobalChatListener to update UI state
+  useEffect(() => {
+    let typingTimer: ReturnType<typeof setTimeout>
+    
+    const onTyping = (e: any) => {
+      const payload = e.detail
+      if (selectedRoom?.id === payload.roomId && payload.userId !== user?.id) {
+        setTypingUser(payload.username)
+        clearTimeout(typingTimer)
+        typingTimer = setTimeout(() => setTypingUser(null), 3000)
+      }
+    }
+
+    const onMessage = (e: any) => {
+      if (selectedRoom?.id === e.detail.roomId) {
+        setTypingUser(null)
+      }
+    }
+
+    window.addEventListener('chat_typing_received', onTyping)
+    window.addEventListener('chat_message_received', onMessage)
+
+    return () => {
+      window.removeEventListener('chat_typing_received', onTyping)
+      window.removeEventListener('chat_message_received', onMessage)
+      clearTimeout(typingTimer)
+      setTypingUser(null)
+    }
+  }, [selectedRoom?.id, user?.id])
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] gap-6">
+    <div className="flex h-[calc(100vh-8rem)] gap-6 p-4 pt-0">
       {/* Sidebar — Navigation & List */}
       <div className="w-80 shrink-0">
-        <GlassCard className="h-full p-4">
+        <GlassCard className="h-full p-4 bg-[#0B1220]/50 border-white/[0.08]">
           <ChatSidebar
             currentUserId={user?.id}
             activeTab={activeTab}
@@ -94,12 +129,14 @@ export default function ChatPage() {
 
       {/* Main — Message Panel */}
       <div className="flex-1">
-        <GlassCard className="h-full overflow-hidden p-0 shadow-lg shadow-violet-500/5 ring-1 ring-border/50">
+        <GlassCard className="h-full overflow-hidden p-0 shadow-lg shadow-blue-500/5 border-white/[0.08] bg-[#050816]">
           <ChatArea
             selectedRoom={selectedRoom}
             user={user}
             messagesQuery={messagesQuery}
+            users={usersQuery.data ?? []}
             sendMutation={sendMutation}
+            typingUser={typingUser}
           />
         </GlassCard>
       </div>

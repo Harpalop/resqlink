@@ -15,6 +15,13 @@ export interface ChatMessage {
   senderId: string
   senderName: string
   content: string
+  fileUrl?: string
+  fileName?: string
+  fileType?: string
+  latitude?: number
+  longitude?: number
+  messageType?: 'TEXT' | 'FILE' | 'LOCATION' | 'EMERGENCY'
+  status?: 'SENDING' | 'SENT' | 'DELIVERED' | 'READ'
   createdAt: string
 }
 
@@ -23,6 +30,7 @@ export interface ChatUser {
   fullName: string
   email: string
   role: string
+  profilePictureUrl?: string
 }
 
 export const chatApi = {
@@ -36,6 +44,27 @@ export const chatApi = {
     (await api.post<ChatRoom>(`/chat/direct/${targetUserId}`)).data,
   getMessages: async (roomId: string) =>
     (await api.get<ChatMessage[]>(`/chat/rooms/${roomId}/messages`)).data,
-  sendMessage: async (roomId: string, content: string) =>
-    (await api.post<ChatMessage>(`/chat/rooms/${roomId}/messages`, { content })).data,
+  sendMessage: async (
+    roomId: string,
+    payload: {
+      content: string
+      fileUrl?: string
+      fileName?: string
+      fileType?: string
+      latitude?: number
+      longitude?: number
+      messageType?: string
+    }
+  ) => (await api.post<ChatMessage>(`/chat/rooms/${roomId}/messages`, payload)).data,
+  sendTyping: async (roomId: string) =>
+    (await api.post(`/chat/rooms/${roomId}/typing`)).data,
+  uploadFile: async (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return (await api.post<{ fileUrl: string; fileName: string; fileType: string }>('/files/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })).data
+  },
+  updateProfilePicture: async (url: string) =>
+    (await api.put<ChatUser>('/users/me/profile-picture', { profilePictureUrl: url })).data
 }

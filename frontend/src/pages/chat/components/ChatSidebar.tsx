@@ -47,7 +47,6 @@ export function ChatSidebar({
 
   const allRooms = roomsQuery.data ?? []
   
-  // Filter rooms
   const groupRooms = allRooms.filter((r) => r.type !== 'DIRECT')
   const directRooms = allRooms.filter((r) => r.type === 'DIRECT')
 
@@ -60,37 +59,29 @@ export function ChatSidebar({
     switch (role) {
       case 'DOCTOR':
       case 'NURSE':
-        return <Stethoscope className="h-3.5 w-3.5 text-cyan-400" />
+        return <Stethoscope className="h-3.5 w-3.5 text-[#10B981]" />
       case 'POLICE':
       case 'FIREFIGHTER':
       case 'RESCUE_TEAM':
-        return <Siren className="h-3.5 w-3.5 text-rose-500" />
+        return <Siren className="h-3.5 w-3.5 text-[#F97316]" />
       case 'ADMIN':
-        return <Shield className="h-3.5 w-3.5 text-amber-400" />
+        return <Shield className="h-3.5 w-3.5 text-[#9333EA]" />
       default:
-        return <User className="h-3.5 w-3.5 text-emerald-400" />
+        return <User className="h-3.5 w-3.5 text-[#3B82F6]" />
     }
   }
 
-  // Helper to extract the other user's name from "Direct: User A & User B"
   const getDirectChatName = (roomName: string) => {
     if (!roomName.startsWith('Direct: ')) return roomName
     const parts = roomName.replace('Direct: ', '').split(' & ')
-    // If we can't figure out current user, just return the raw string
     if (!currentUserId) return parts.join(' & ')
-    
-    // We don't have current user's full name directly in sidebar unless we pass it,
-    // but typically one part is the current user. Let's just pass currentUserFullName 
-    // down if needed, but for now we'll just try to guess or show both if it's tricky.
-    // Actually, passing `currentUserFullName` to `ChatSidebar` would be cleaner.
-    // Let's assume we pass `currentUserFullName` later or handle it here:
-    return parts.join(' & ') // We will refine this below.
+    return parts.join(' & ')
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col bg-[#0B1220] text-[#F8FAFC]">
       {/* Premium Animated Tabs */}
-      <div className="relative mb-4 flex rounded-xl bg-muted/40 p-1 backdrop-blur-sm">
+      <div className="relative mb-4 flex rounded-xl bg-[#111827] p-1 backdrop-blur-md border border-white/[0.08]">
         {['rooms', 'direct'].map((tab) => {
           const isActive = activeTab === tab
           return (
@@ -99,17 +90,17 @@ export function ChatSidebar({
               onClick={() => setActiveTab(tab as 'rooms' | 'direct')}
               className={cn(
                 'relative flex-1 rounded-lg py-2 text-[11px] font-bold uppercase tracking-wider transition-colors z-10',
-                isActive ? 'text-violet-600 dark:text-violet-400' : 'text-muted-foreground hover:text-foreground'
+                isActive ? 'text-white' : 'text-[#94A3B8] hover:text-[#F8FAFC]'
               )}
             >
               {isActive && (
                 <motion.div
                   layoutId="sidebar-tab"
-                  className="absolute inset-0 -z-10 rounded-lg bg-background shadow-sm"
+                  className="absolute inset-0 -z-10 rounded-lg bg-[#2563EB] shadow-[0_0_15px_rgba(37,99,235,0.4)]"
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
               )}
-              {tab === 'rooms' ? 'Group Channels' : 'Direct Messages'}
+              {tab === 'rooms' ? 'Channels' : 'Direct'}
             </button>
           )
         })}
@@ -126,11 +117,11 @@ export function ChatSidebar({
         >
           {activeTab === 'rooms' ? (
             <>
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+              <div className="mb-3 flex items-center justify-between px-1">
+                <h2 className="text-[10px] font-bold tracking-wider text-[#94A3B8] uppercase">
                   Active Channels
                 </h2>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-violet-500 hover:bg-violet-500/10" onClick={() => setCreating((v) => !v)}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-[#3B82F6] hover:bg-[#3B82F6]/10" onClick={() => setCreating((v) => !v)}>
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -148,13 +139,13 @@ export function ChatSidebar({
                         value={newRoomName}
                         onChange={(e) => setNewRoomName(e.target.value)}
                         placeholder="Channel name..."
-                        className="h-9 flex-1 rounded-lg border border-input bg-background/50 px-3 text-sm focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 focus:outline-none"
+                        className="h-9 flex-1 rounded-lg border border-white/[0.12] bg-[#111827] px-3 text-sm focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] focus:outline-none"
                         onKeyDown={(e) => e.key === 'Enter' && newRoomName.trim() && createMutation.mutate(newRoomName.trim())}
                         autoFocus
                       />
                       <Button
                         size="sm"
-                        className="bg-violet-600 hover:bg-violet-700 text-white"
+                        className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white shadow-lg shadow-blue-500/20"
                         onClick={() => newRoomName.trim() && createMutation.mutate(newRoomName.trim())}
                         disabled={!newRoomName.trim() || createMutation.isPending}
                       >
@@ -167,11 +158,11 @@ export function ChatSidebar({
 
               <div className="flex-1 space-y-1.5 overflow-y-auto pr-1">
                 {roomsQuery.isPending ? (
-                  <>{[1, 2, 3].map((n) => <Skeleton key={n} className="h-14 rounded-xl" />)}</>
+                  <>{[1, 2, 3].map((n) => <Skeleton key={n} className="h-14 rounded-xl bg-[#111827]" />)}</>
                 ) : groupRooms.length === 0 ? (
                   <div className="p-4 text-center">
-                    <Hash className="mx-auto mb-2 h-6 w-6 text-muted-foreground/30" />
-                    <p className="text-xs text-muted-foreground">No channels yet.</p>
+                    <Hash className="mx-auto mb-2 h-6 w-6 text-[#94A3B8]/30" />
+                    <p className="text-xs text-[#94A3B8]">No channels yet.</p>
                   </div>
                 ) : (
                   groupRooms.map((room) => (
@@ -179,24 +170,24 @@ export function ChatSidebar({
                       key={room.id}
                       onClick={() => setSelectedRoom(room)}
                       className={cn(
-                        'flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-all duration-200',
+                        'group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-all duration-200 border',
                         selectedRoom?.id === room.id
-                          ? 'bg-violet-500/15 text-foreground shadow-sm shadow-violet-500/5 ring-1 ring-violet-500/20'
-                          : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                          ? 'bg-[#111827] border-white/[0.12] text-white shadow-lg'
+                          : 'border-transparent text-[#94A3B8] hover:bg-[#111827]/50 hover:text-white',
                       )}
                     >
                       <span className={cn(
-                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
-                        selectedRoom?.id === room.id ? "bg-violet-500 text-white shadow-md shadow-violet-500/20" : "bg-muted text-muted-foreground"
+                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all",
+                        selectedRoom?.id === room.id ? "bg-[#2563EB] text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]" : "bg-[#111827] text-[#94A3B8] border border-white/[0.08]"
                       )}>
                         <Hash className="h-4.5 w-4.5" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className={cn("truncate text-sm", selectedRoom?.id === room.id ? "font-bold text-violet-600 dark:text-violet-400" : "font-medium")}>
+                        <p className={cn("truncate text-[13px] tracking-wide", selectedRoom?.id === room.id ? "font-bold text-white" : "font-medium")}>
                           {room.name}
                         </p>
                         {room.description && (
-                          <p className="truncate text-[11px] opacity-70">{room.description}</p>
+                          <p className="truncate text-[10px] text-[#94A3B8] mt-0.5">{room.description}</p>
                         )}
                       </div>
                     </button>
@@ -209,19 +200,19 @@ export function ChatSidebar({
               {/* Direct Messages Tab */}
               <div className="mb-4 space-y-4">
                 <div className="relative">
-                  <Search className="absolute top-2.5 left-3 h-4 w-4 text-muted-foreground/60" />
+                  <Search className="absolute top-2.5 left-3 h-4 w-4 text-[#94A3B8]" />
                   <input
                     value={userSearch}
                     onChange={(e) => setUserSearch(e.target.value)}
                     placeholder="Find users to message..."
-                    className="h-9 w-full rounded-xl border border-input bg-background/50 pl-9 pr-3 text-sm focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 focus:outline-none"
+                    className="h-9 w-full rounded-xl border border-white/[0.12] bg-[#111827] pl-9 pr-3 text-sm focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] focus:outline-none placeholder:text-[#94A3B8]/60"
                   />
                 </div>
 
                 {userSearch.trim() === '' && directRooms.length > 0 && (
                   <div className="space-y-2">
-                    <h2 className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
-                      Recent Conversations
+                    <h2 className="text-[10px] font-bold tracking-wider text-[#94A3B8] uppercase px-1">
+                      Recent
                     </h2>
                     <div className="space-y-1.5">
                       {directRooms.map((room) => (
@@ -229,20 +220,20 @@ export function ChatSidebar({
                           key={room.id}
                           onClick={() => setSelectedRoom(room)}
                           className={cn(
-                            'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-200',
+                            'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-200 border',
                             selectedRoom?.id === room.id
-                              ? 'bg-violet-500/15 text-foreground shadow-sm ring-1 ring-violet-500/20'
-                              : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                              ? 'bg-[#111827] border-white/[0.12] text-white shadow-lg'
+                              : 'border-transparent text-[#94A3B8] hover:bg-[#111827]/50 hover:text-white',
                           )}
                         >
                           <span className={cn(
-                            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-                            selectedRoom?.id === room.id ? "bg-violet-500 text-white" : "bg-muted text-muted-foreground"
+                            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all",
+                            selectedRoom?.id === room.id ? "bg-[#2563EB] text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]" : "bg-[#111827] text-[#94A3B8] border border-white/[0.08]"
                           )}>
                             <User className="h-4 w-4" />
                           </span>
                           <div className="min-w-0 flex-1">
-                            <p className={cn("truncate text-sm", selectedRoom?.id === room.id ? "font-bold text-violet-600 dark:text-violet-400" : "font-medium")}>
+                            <p className={cn("truncate text-[13px]", selectedRoom?.id === room.id ? "font-bold text-white" : "font-medium")}>
                               {getDirectChatName(room.name)}
                             </p>
                           </div>
@@ -255,13 +246,13 @@ export function ChatSidebar({
 
               {(userSearch.trim() !== '' || directRooms.length === 0) && (
                 <div className="flex-1 space-y-1.5 overflow-y-auto pr-1">
-                  <h2 className="mb-2 text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
-                    Network Directory
+                  <h2 className="mb-2 text-[10px] font-bold tracking-wider text-[#94A3B8] uppercase px-1">
+                    Directory
                   </h2>
                   {usersQuery.isPending ? (
-                    <>{[1, 2, 3, 4].map((n) => <Skeleton key={n} className="h-12 rounded-xl" />)}</>
+                    <>{[1, 2, 3, 4].map((n) => <Skeleton key={n} className="h-12 rounded-xl bg-[#111827]" />)}</>
                   ) : users.length === 0 ? (
-                    <p className="p-4 text-center text-xs text-muted-foreground">No users found.</p>
+                    <p className="p-4 text-center text-xs text-[#94A3B8]">No users found.</p>
                   ) : (
                     users.map((u) => (
                       <button
@@ -271,20 +262,24 @@ export function ChatSidebar({
                           setUserSearch('')
                         }}
                         disabled={directChatMutation.isPending}
-                        className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all hover:bg-violet-500/10 hover:shadow-sm"
+                        className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all hover:bg-[#111827] border border-transparent hover:border-white/[0.08]"
                       >
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-background border border-border shadow-sm group-hover:border-violet-200">
-                          {getRoleIcon(u.role)}
+                        <span className="flex h-8 w-8 shrink-0 overflow-hidden items-center justify-center rounded-full bg-[#050816] border border-white/[0.12] shadow-sm">
+                          {u.profilePictureUrl ? (
+                            <img src={u.profilePictureUrl} alt={u.fullName} className="h-full w-full object-cover" />
+                          ) : (
+                            getRoleIcon(u.role)
+                          )}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold group-hover:text-violet-700 dark:group-hover:text-violet-300 transition-colors">
+                          <p className="truncate text-[13px] font-semibold text-white group-hover:text-[#3B82F6] transition-colors">
                             {u.fullName}
                           </p>
-                          <p className="truncate text-[10px] tracking-wide text-muted-foreground uppercase">
+                          <p className="truncate text-[10px] tracking-wide text-[#94A3B8] uppercase mt-0.5">
                             {u.role.replace('_', ' ')}
                           </p>
                         </div>
-                        <UserCheck className="h-4 w-4 text-muted-foreground/40 group-hover:text-violet-500 transition-colors" />
+                        <UserCheck className="h-4 w-4 text-[#94A3B8]/40 group-hover:text-[#3B82F6] transition-colors" />
                       </button>
                     ))
                   )}

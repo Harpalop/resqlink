@@ -97,6 +97,7 @@ export interface User {
   email: string
   phone: string | null
   role: Role
+  profilePictureUrl?: string
   createdAt: string
 }
 

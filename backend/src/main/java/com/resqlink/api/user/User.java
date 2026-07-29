@@ -57,6 +57,9 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private boolean enabled = true;
 
+    @Column(length = 500)
+    private String profilePictureUrl;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private Instant createdAt;

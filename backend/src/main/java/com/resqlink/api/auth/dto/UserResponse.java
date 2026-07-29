@@ -11,6 +11,7 @@ public record UserResponse(
         String email,
         String phone,
         String role,
+        String profilePictureUrl,
         Instant createdAt
 ) {
     public static UserResponse from(User user) {
@@ -20,6 +21,7 @@ public record UserResponse(
                 user.getEmail(),
                 user.getPhone(),
                 user.getRole().name(),
+                user.getProfilePictureUrl(),
                 user.getCreatedAt()
         );
     }

@@ -1,15 +1,17 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation } from '@tanstack/react-query'
-import { AlertCircle, ArrowRight, Check, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { ArrowRight, Camera, Check, ChevronRight, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { AuthLayout } from '@/pages/auth/auth-layout'
 import { Button } from '@/components/ui/button'
 import { FormField } from '@/components/ui/input'
+import { ImageCropperModal } from '@/components/ui/image-cropper-modal'
 import { authApi } from '@/features/auth/api'
+import { chatApi } from '@/features/chat/api'
 import { useAuth } from '@/features/auth/auth-context'
 import { SELF_REGISTER_ROLES, ROLE_META, type Role } from '@/features/auth/types'
 import { getApiErrorMessage } from '@/lib/api'
@@ -38,10 +40,19 @@ const registerSchema = z
 type RegisterForm = z.infer<typeof registerSchema>
 
 export default function RegisterPage() {
-  const { applyAuth } = useAuth()
+  const { applyAuth, updateUser, user } = useAuth()
   const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
   const [selectedRole, setSelectedRole] = useState<Role>('CITIZEN')
+  
+  // Multi-step flow
+  const [step, setStep] = useState<1 | 2>(1)
+  
+  // Cropper state
+  const [cropModalOpen, setCropModalOpen] = useState(false)
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   const {
     register,
@@ -53,9 +64,116 @@ export default function RegisterPage() {
     mutationFn: authApi.register,
     onSuccess: (response) => {
       applyAuth(response)
-      navigate('/dashboard', { replace: true })
+      setStep(2)
     },
   })
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.addEventListener('load', () => {
+      setImageToCrop(reader.result?.toString() || null)
+      setCropModalOpen(true)
+    })
+    reader.readAsDataURL(file)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const handleCropComplete = async (croppedFile: File) => {
+    setCropModalOpen(false)
+    setImageToCrop(null)
+    setIsUploading(true)
+    try {
+      const uploadRes = await chatApi.uploadFile(croppedFile)
+      const updateRes = await chatApi.updateProfilePicture(uploadRes.fileUrl)
+      updateUser(updateRes as any)
+    } catch (error) {
+      console.error('Failed to upload profile picture', error)
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const finishRegistration = () => {
+    navigate('/dashboard', { replace: true })
+  }
+
+  if (step === 2) {
+    return (
+      <AuthLayout>
+        <div className="mb-8 text-center">
+          <h1 className="font-display text-3xl font-bold tracking-tight">Add a Profile Picture</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Help others recognize you in emergencies.
+          </p>
+        </div>
+
+        <div className="flex flex-col items-center justify-center space-y-8 py-8">
+          <div 
+            onClick={() => !isUploading && fileInputRef.current?.click()}
+            className="group relative flex h-32 w-32 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-primary/50 bg-primary/5 transition-all hover:border-primary hover:bg-primary/10 shadow-xl"
+          >
+            <input 
+              type="file" 
+              ref={fileInputRef}
+              accept="image/*" 
+              onChange={handleFileChange} 
+              className="hidden"
+            />
+            {user?.profilePictureUrl ? (
+              <img src={user.profilePictureUrl} alt="Profile" className="h-full w-full object-cover" />
+            ) : (
+              <Camera className="h-10 w-10 text-primary/50 group-hover:text-primary transition-colors" />
+            )}
+            
+            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              {isUploading ? (
+                <Loader2 className="h-6 w-6 text-white animate-spin" />
+              ) : (
+                <span className="text-xs font-bold text-white uppercase tracking-wider">
+                  {user?.profilePictureUrl ? 'Change' : 'Upload'}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="w-full flex flex-col gap-3">
+            <Button 
+              size="lg" 
+              className="w-full"
+              variant="gradient"
+              onClick={finishRegistration}
+            >
+              Continue to Dashboard <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
+            {!user?.profilePictureUrl && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="text-muted-foreground"
+                onClick={finishRegistration}
+              >
+                Skip for now
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {imageToCrop && (
+          <ImageCropperModal
+            isOpen={cropModalOpen}
+            imageSrc={imageToCrop}
+            onClose={() => {
+              setCropModalOpen(false)
+              setImageToCrop(null)
+            }}
+            onCropComplete={handleCropComplete}
+          />
+        )}
+      </AuthLayout>
+    )
+  }
 
   const onSubmit = (values: RegisterForm) => {
     registerMutation.mutate({
@@ -78,7 +196,6 @@ export default function RegisterPage() {
 
       {registerMutation.isError && (
         <div className="mb-5 flex items-start gap-2.5 rounded-xl border border-emergency/30 bg-emergency/10 px-4 py-3 text-sm text-emergency">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           {getApiErrorMessage(registerMutation.error, 'Unable to create account. Please try again.')}
         </div>
       )}

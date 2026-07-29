@@ -116,6 +116,13 @@ public class WebSocketPushService {
 
     /* ─── Chat Messages ──────────────────────────────────── */
 
+    public record TypingPayload(String eventType, UUID roomId, UUID userId, String username) {}
+
+    public void pushTypingIndicator(UUID roomId, User user) {
+        var dto = new TypingPayload("TYPING", roomId, user.getId(), user.getFullName());
+        messagingTemplate.convertAndSend("/topic/chat/" + roomId, dto);
+    }
+
     public void pushChatMessage(UUID roomId, Object dto) {
         messagingTemplate.convertAndSend("/topic/chat/" + roomId, dto);
     }

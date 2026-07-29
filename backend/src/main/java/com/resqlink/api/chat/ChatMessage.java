@@ -41,6 +41,28 @@ public class ChatMessage {
     @Column(nullable = false, length = 500)
     private String content;
 
+    @Column(length = 500)
+    private String fileUrl;
+
+    @Column(length = 255)
+    private String fileName;
+
+    @Column(length = 100)
+    private String fileType;
+
+    private Double latitude;
+    private Double longitude;
+
+    @jakarta.persistence.Enumerated(jakarta.persistence.EnumType.STRING)
+    @Column(length = 20)
+    @Builder.Default
+    private MessageType type = MessageType.TEXT;
+
+    @jakarta.persistence.Enumerated(jakarta.persistence.EnumType.STRING)
+    @Column(length = 20)
+    @Builder.Default
+    private MessageStatus status = MessageStatus.SENT;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private Instant createdAt;

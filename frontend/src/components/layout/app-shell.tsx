@@ -33,6 +33,8 @@ import { useAuth } from '@/features/auth/auth-context'
 import type { Role } from '@/features/auth/types'
 import { api } from '@/lib/api'
 import { cn, getInitials } from '@/lib/utils'
+import { GlobalChatListener, ChatNotificationToggle } from '@/components/layout/global-chat-listener'
+import { UserSettingsModal } from '@/components/ui/user-settings-modal'
 
 interface NavItem {
   to: string
@@ -135,10 +137,13 @@ function NavLinks({ onNavigate, user }: { onNavigate?: () => void; user: { role:
   )
 }
 
+
+
 export function AppShell() {
-  const { user, logout } = useAuth()
+  const { user, updateUser, logout } = useAuth()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false)
   // Role-based nav filtering is handled inside NavLinks via item.roles
 
   const handleLogout = () => {
@@ -149,15 +154,25 @@ export function AppShell() {
   return (
     <div className="relative min-h-screen">
       <GradientOrbs className="opacity-50" />
+      <GlobalChatListener />
 
       {/* Desktop sidebar */}
       <aside className="glass-panel fixed inset-y-0 left-0 z-40 hidden w-64 flex-col overflow-y-auto border-y-0 border-l-0 p-5 lg:flex">
         <Logo className="mb-8 px-1" />
         <NavLinks user={user} />
         <div className="mt-auto space-y-3">
-          <div className="glass-panel flex items-center gap-3 rounded-xl p-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-violet-500 text-xs font-semibold text-white">
-              {user ? getInitials(user.fullName) : '?'}
+          <div 
+            onClick={() => setSettingsModalOpen(true)}
+            className="glass-panel flex items-center gap-3 rounded-xl p-3 cursor-pointer hover:bg-white/[0.05] transition-colors"
+          >
+            <div className="relative h-9 w-9 shrink-0 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-violet-500 border border-white/10 shadow-sm">
+              {user?.profilePictureUrl ? (
+                <img src={user.profilePictureUrl} alt={user.fullName} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-white">
+                  {user ? getInitials(user.fullName) : '?'}
+                </div>
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{user?.fullName}</p>
@@ -167,6 +182,7 @@ export function AppShell() {
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-1">
               <ThemeToggle />
+              <ChatNotificationToggle />
               <NotificationBell />
             </div>
             <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2 text-muted-foreground">
@@ -181,6 +197,7 @@ export function AppShell() {
         <Logo />
         <div className="flex items-center gap-1">
           <ThemeToggle />
+          <ChatNotificationToggle />
           <NotificationBell />
           <Button
             variant="ghost"
@@ -221,6 +238,14 @@ export function AppShell() {
           <Outlet />
         </div>
       </main>
+
+      <UserSettingsModal 
+        isOpen={settingsModalOpen} 
+        onClose={() => setSettingsModalOpen(false)} 
+        user={user} 
+        updateUser={updateUser}
+        onLogout={handleLogout}
+      />
     </div>
   )
 }

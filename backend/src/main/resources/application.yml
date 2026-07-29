@@ -14,9 +14,14 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
 
 server:
   port: 8080
+
 
 resqlink:
   security:
