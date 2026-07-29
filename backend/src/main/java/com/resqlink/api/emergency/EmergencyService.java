@@ -69,8 +69,7 @@ public class EmergencyService {
             emergency.addEvent("Location unavailable", "GPS permission denied or unsupported");
         }
 
-        var contacts = contactRepository
-                .findByUserIdOrderByPriorityAscCreatedAtAsc(user.getId());
+        var contacts = contactRepository.findByUserIdOrderByPriorityAscCreatedAtAsc(user.getId());
         long emailed = contacts.stream()
                 .filter(c -> c.getEmail() != null && !c.getEmail().isBlank())
                 .count();

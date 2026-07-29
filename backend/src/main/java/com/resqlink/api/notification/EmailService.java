@@ -16,6 +16,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
@@ -109,6 +111,8 @@ public class EmailService {
                 .map(token -> appUrl + "/m/" + token)
                 .orElse("Not available");
 
+        String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("MMM dd, yyyy h:mm a"));
+
         return """
                 <!DOCTYPE html>
                 <html>
@@ -139,9 +143,6 @@ public class EmailService {
                 user.getFullName(),
                 emergency.getReference(),
                 emergency.getType().name().replace('_', ' ').toLowerCase(),
-                mapsLink,
-                java.time.LocalDateTime.now()
-                        .format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy h:mm a"))
-        );
+                mapsLink, time);
     }
 }

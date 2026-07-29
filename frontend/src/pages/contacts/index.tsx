@@ -144,7 +144,7 @@ export default function ContactsPage() {
                   {...register('phone')}
                 />
                 <FormField
-                  label="Email"
+                  label="Email (for SOS alerts)"
                   type="email"
                   placeholder="priya@example.com"
                   error={errors.email?.message}
