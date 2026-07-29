@@ -1,10 +1,11 @@
 import { api } from '@/lib/api'
 
-export interface HospitalPin {
+export interface FacilityPin {
   id: string
   name: string
   city: string
   phone: string | null
+  type: 'HOSPITAL' | 'POLICE_STATION' | 'FIRE_STATION' | 'AMBULANCE_SERVICE'
   emergencyDept: boolean
   bloodBank: boolean
   open24x7: boolean
@@ -24,7 +25,7 @@ export interface EmergencyPin {
 }
 
 export interface MapOverview {
-  hospitals: HospitalPin[]
+  facilities: FacilityPin[]
   emergencies: EmergencyPin[]
 }
 

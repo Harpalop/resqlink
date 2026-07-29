@@ -3,9 +3,9 @@ spring:
     name: resqlink-api
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/resqlink}
-    username: ${DB_USERNAME:resqlink}
-    password: ${DB_PASSWORD:resqlink}
+    url: ${DB_URL:jdbc:h2:mem:resqlink;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
 
   jpa:
     hibernate:
@@ -14,9 +14,14 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
 
 server:
   port: 8080
+
 
 resqlink:
   security:

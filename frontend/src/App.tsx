@@ -12,8 +12,9 @@ import ContactsPage from '@/pages/contacts'
 import SosPage from '@/pages/sos'
 import BloodPage from '@/pages/blood'
 import FirstAidPage from '@/pages/first-aid'
-import HospitalsPage from '@/pages/hospitals'
+import FacilitiesPage from '@/pages/facilities'
 import MapPage from '@/pages/map'
+import HazardPage from '@/pages/hazards'
 import FamilyPage from '@/pages/family'
 import TelemedicinePage from '@/pages/telemedicine'
 import AssistantPage from '@/pages/assistant'
@@ -21,6 +22,7 @@ import NotificationsPage from '@/pages/notifications'
 import AlertsPage from '@/pages/alerts'
 import AchievementsPage from '@/pages/achievements'
 import AdminPage from '@/pages/admin'
+import ChatPage from '@/pages/chat'
 import NotFoundPage from '@/pages/not-found'
 import { ProtectedRoute } from '@/features/auth/protected-route'
 import { AppShell } from '@/components/layout/app-shell'
@@ -52,14 +54,17 @@ export default function App() {
             <Route path="/sos" element={<SosPage />} />
             <Route path="/blood" element={<BloodPage />} />
             <Route path="/first-aid" element={<FirstAidPage />} />
-            <Route path="/hospitals" element={<HospitalsPage />} />
+            <Route path="/facilities" element={<FacilitiesPage />} />
+            <Route path="/hospitals" element={<FacilitiesPage />} />
             <Route path="/map" element={<MapPage />} />
+            <Route path="/hazards" element={<HazardPage />} />
             <Route path="/family" element={<FamilyPage />} />
             <Route path="/telemedicine" element={<TelemedicinePage />} />
             <Route path="/assistant" element={<AssistantPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/alerts" element={<AlertsPage />} />
             <Route path="/achievements" element={<AchievementsPage />} />
+            <Route path="/chat" element={<ChatPage />} />
             <Route path="/admin" element={<AdminPage />} />
           </Route>
         </Route>

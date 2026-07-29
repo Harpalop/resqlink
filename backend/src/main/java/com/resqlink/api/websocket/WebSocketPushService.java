@@ -2,6 +2,7 @@ package com.resqlink.api.websocket;
 
 import com.resqlink.api.disaster.DisasterAlert;
 import com.resqlink.api.emergency.Emergency;
+import com.resqlink.api.hazard.HazardReport;
 import com.resqlink.api.notification.Notification;
 import com.resqlink.api.user.User;
 import lombok.RequiredArgsConstructor;
@@ -80,6 +81,14 @@ public class WebSocketPushService {
         messagingTemplate.convertAndSend("/topic/disasters", dto);
     }
 
+    /* ─── Hazard Reports ───────────────────────────────── */
+
+    public void pushHazardReport(HazardReport report, String action) {
+        messagingTemplate.convertAndSend("/topic/hazards", new HazardPayload(
+                action, report.getId(), report.getType().name(), report.getSeverity().name(),
+                report.getTitle(), report.getDescription(), report.getLatitude(),
+                report.getLongitude(), report.getStatus().name()));
+    }
     /* ─── Inner DTOs (sent as JSON over the wire) ──────────── */
 
     public record NotificationPayload(
@@ -97,5 +106,28 @@ public class WebSocketPushService {
             String action, UUID id, String type,
             String severity, String title, String region,
             boolean active) {
+    }
+    public record ChatMessagePayload(
+            UUID roomId, UUID senderId, String senderName,
+            String content, String createdAt) {
+    }
+
+    /* ─── Chat Messages ──────────────────────────────────── */
+
+    public record TypingPayload(String eventType, UUID roomId, UUID userId, String username) {}
+
+    public void pushTypingIndicator(UUID roomId, User user) {
+        var dto = new TypingPayload("TYPING", roomId, user.getId(), user.getFullName());
+        messagingTemplate.convertAndSend("/topic/chat/" + roomId, dto);
+    }
+
+    public void pushChatMessage(UUID roomId, Object dto) {
+        messagingTemplate.convertAndSend("/topic/chat/" + roomId, dto);
+    }
+
+    public record HazardPayload(
+            String action, UUID id, String type, String severity,
+            String title, String description, double latitude,
+            double longitude, String status) {
     }
 }

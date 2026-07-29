@@ -2,6 +2,8 @@ package com.resqlink.api.notification;
 
 import com.resqlink.api.contact.EmergencyContact;
 import com.resqlink.api.emergency.Emergency;
+import com.resqlink.api.profile.MedicalProfile;
+import com.resqlink.api.profile.MedicalProfileRepository;
 import com.resqlink.api.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +21,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Sends email alerts when an SOS is triggered.
+ *
+ * Uses the Resend API (https://resend.com) when {@code RESEND_API_KEY} is
+ * configured. Falls back to logging when no key is present — the feature
+ * works in development without any external setup.
+ */
 @Service
 public class EmailService {
 
@@ -28,26 +37,36 @@ public class EmailService {
     private final RestTemplate rest;
     private final String apiKey;
     private final String appUrl;
+    private final MedicalProfileRepository profileRepository;
 
     public EmailService(
             @Value("${RESEND_API_KEY:}") String apiKey,
             @Value("${VITE_PUBLIC_APP_URL:http://localhost:5173}") String appUrl,
-            RestTemplateBuilder builder) {
+            RestTemplateBuilder builder,
+            MedicalProfileRepository profileRepository) {
         this.apiKey = apiKey;
         this.appUrl = appUrl;
         this.rest = builder.build();
+        this.profileRepository = profileRepository;
     }
 
+    /**
+     * Send an SOS alert email to every emergency contact who has an email
+     * address. Runs on a separate thread so it never blocks the SOS trigger.
+     */
     @Async
     public void sendSosAlert(User user, Emergency emergency, List<EmergencyContact> contacts) {
         for (var contact : contacts) {
-            if (contact.getEmail() == null || contact.getEmail().isBlank()) continue;
+            if (contact.getEmail() == null || contact.getEmail().isBlank()) {
+                continue;
+            }
             try {
                 sendEmail(contact.getEmail(), contact.getName(),
-                        "🚨 SOS Alert — " + user.getFullName() + " needs help",
+                        "🆘 SOS Alert — " + user.getFullName() + " needs help",
                         buildSosBody(user, emergency));
             } catch (Exception e) {
-                log.warn("Failed to send SOS email to {} ({})", contact.getEmail(), e.getMessage());
+                log.warn("Failed to send SOS email to {} ({})",
+                        contact.getEmail(), e.getMessage());
             }
         }
     }
@@ -69,8 +88,16 @@ public class EmailService {
                 "subject", subject,
                 "html", html);
 
-        rest.postForEntity(RESEND_API, new HttpEntity<>(body, headers), String.class);
-        log.info("SOS email sent to {} ({})", to, toName);
+        var response = rest.postForEntity(
+                RESEND_API,
+                new HttpEntity<>(body, headers),
+                String.class);
+
+        if (response.getStatusCode().is2xxSuccessful()) {
+            log.info("SOS email sent to {} ({})", to, toName);
+        } else {
+            log.warn("Resend API returned {}: {}", response.getStatusCode(), response.getBody());
+        }
     }
 
     private String buildSosBody(User user, Emergency emergency) {
@@ -78,6 +105,12 @@ public class EmailService {
                 ? String.format("https://maps.google.com/maps?q=%.5f,%.5f",
                 emergency.getLatitude(), emergency.getLongitude())
                 : "Location not available";
+
+        String medicalIdLink = profileRepository.findByUserId(user.getId())
+                .map(MedicalProfile::getPublicToken)
+                .map(token -> appUrl + "/m/" + token)
+                .orElse("Not available");
+
         String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("MMM dd, yyyy h:mm a"));
 
         return """
@@ -90,7 +123,7 @@ public class EmailService {
                     <p style="margin: 8px 0 0; opacity: 0.9;">%s</p>
                   </div>
                   <table style="width: 100%%; border-collapse: collapse;">
-                    <tr><td style="padding: 8px 12px; color: #666;">Person</td><td style="padding: 8px 12px; font-weight: 600;">%s</td></tr>
+                    <tr><td style="padding: 8px 12px; color: #666; width: 100px;">Person</td><td style="padding: 8px 12px; font-weight: 600;">%s</td></tr>
                     <tr style="background: #f8f8f8;"><td style="padding: 8px 12px; color: #666;">Reference</td><td style="padding: 8px 12px; font-weight: 600;">%s</td></tr>
                     <tr><td style="padding: 8px 12px; color: #666;">Type</td><td style="padding: 8px 12px; font-weight: 600;">%s</td></tr>
                     <tr style="background: #f8f8f8;"><td style="padding: 8px 12px; color: #666;">Status</td><td style="padding: 8px 12px; font-weight: 600; color: #dc2626;">ACTIVE</td></tr>
@@ -98,7 +131,10 @@ public class EmailService {
                     <tr style="background: #f8f8f8;"><td style="padding: 8px 12px; color: #666;">Time</td><td style="padding: 8px 12px; font-weight: 600;">%s</td></tr>
                   </table>
                   <p style="margin-top: 24px; padding: 16px; background: #fef2f2; border-radius: 8px; font-size: 14px; color: #991b1b;">
-                    This is an automated alert from <strong>ResQLink</strong>. Please check on this person if possible.
+                    This is an automated alert from <strong>ResQLink</strong>. Please contact the person above or check on them if possible.
+                  </p>
+                  <p style="text-align: center; color: #999; font-size: 12px; margin-top: 24px;">
+                    ResQLink — Smart Emergency Response &amp; Digital Healthcare Ecosystem
                   </p>
                 </body>
                 </html>
