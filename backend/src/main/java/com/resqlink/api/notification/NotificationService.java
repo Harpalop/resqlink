@@ -16,6 +16,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final WebSocketPushService webSocketPushService;
+    private final PushNotificationService pushNotificationService;
 
     @Transactional(propagation = Propagation.REQUIRED)
     public void notify(User user, Notification.Type type, String title, String body) {
@@ -32,6 +33,7 @@ public class NotificationService {
                     @Override
                     public void afterCommit() {
                         webSocketPushService.pushNotification(user, saved);
+                        pushNotificationService.sendPushToUser(user.getId(), title, body, "/");
                     }
                 });
     }

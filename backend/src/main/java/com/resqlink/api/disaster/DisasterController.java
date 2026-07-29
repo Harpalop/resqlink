@@ -32,6 +32,7 @@ public class DisasterController {
 
     private final DisasterAlertRepository alertRepository;
     private final WebSocketPushService webSocketPushService;
+    private final com.resqlink.api.notification.PushNotificationService pushNotificationService;
 
     public record CreateAlertRequest(
             @NotNull DisasterAlert.Type type,
@@ -71,6 +72,11 @@ public class DisasterController {
                     @Override
                     public void afterCommit() {
                         webSocketPushService.pushDisasterAlert(alert, "CREATED");
+                        pushNotificationService.sendPushToAll(
+                                "🚨 Disaster Alert: " + alert.getType().name(),
+                                alert.getTitle() + " - " + alert.getRegion(),
+                                "/"
+                        );
                     }
                 });
         return ResponseEntity.status(HttpStatus.CREATED).body(alert);

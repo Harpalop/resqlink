@@ -35,6 +35,7 @@ import { api } from '@/lib/api'
 import { cn, getInitials } from '@/lib/utils'
 import { GlobalChatListener, ChatNotificationToggle } from '@/components/layout/global-chat-listener'
 import { UserSettingsModal } from '@/components/ui/user-settings-modal'
+import { PushPrompt } from '@/components/ui/push-prompt'
 
 interface NavItem {
   to: string
@@ -246,6 +247,7 @@ export function AppShell() {
         updateUser={updateUser}
         onLogout={handleLogout}
       />
+      <PushPrompt />
     </div>
   )
 }

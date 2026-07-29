@@ -32,6 +32,9 @@ resqlink:
       refresh-token-ttl-ms: 604800000  # 7 days
     cors:
       allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+    vapid:
+      public-key: ${VAPID_PUBLIC_KEY:BPE_JUtjE9nbGeDtKmLda_F2rNMQio9PeH1bvisstkPCEu3lMIhNUAHfoVnrQTUQwv8UFnKnyRNsbUmCDFLLCm4}
+      private-key: ${VAPID_PRIVATE_KEY:V3YfLwQyJdaS95izrjNMZhzOHfUPe4WaEM_sDHgcl7c}
 
 logging:
   level:
