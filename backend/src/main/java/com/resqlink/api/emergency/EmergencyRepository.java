@@ -3,6 +3,7 @@ package com.resqlink.api.emergency;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,4 +22,10 @@ public interface EmergencyRepository extends JpaRepository<Emergency, UUID> {
     Optional<Emergency> findByIdAndUserId(UUID id, UUID userId);
 
     boolean existsByReference(String reference);
+
+    long countByCreatedAtBetween(Instant start, Instant end);
+
+    long countByTypeAndCreatedAtBetween(EmergencyType type, Instant start, Instant end);
+
+    long countByStatus(EmergencyStatus status);
 }

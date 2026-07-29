@@ -196,7 +196,7 @@ function RequestsTab() {
   const requestsQuery = useQuery({
     queryKey: ['blood', 'requests'],
     queryFn: bloodApi.getOpenRequests,
-    refetchInterval: 30_000,
+    refetchInterval: 120_000,
   })
 
   const {
@@ -247,7 +247,7 @@ function RequestsTab() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Open requests refresh automatically every 30 seconds.
+          Open requests refresh automatically every 2 minutes.
         </p>
         {!formOpen && (
           <Button variant="gradient" size="sm" onClick={() => setFormOpen(true)}>

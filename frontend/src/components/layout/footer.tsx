@@ -41,9 +41,9 @@ const FOOTER_COLUMNS = [
 ]
 
 const SOCIALS = [
-  { icon: GithubIcon, label: 'GitHub' },
-  { icon: XIcon, label: 'X' },
-  { icon: LinkedinIcon, label: 'LinkedIn' },
+  { icon: GithubIcon, label: 'GitHub', href: 'https://github.com/Harpalop' },
+  { icon: XIcon, label: 'X', href: 'https://x.com/Hahahaharpal' },
+  { icon: LinkedinIcon, label: 'LinkedIn', href: 'https://www.linkedin.com/in/harpal-solanki-934945381' },
 ]
 
 export function Footer() {
@@ -58,10 +58,12 @@ export function Footer() {
               citizens, hospitals, donors and rescue teams.
             </p>
             <div className="flex gap-2">
-              {SOCIALS.map(({ icon: Icon, label }) => (
+              {SOCIALS.map(({ icon: Icon, label, href }) => (
                 <a
                   key={label}
-                  href="#"
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   aria-label={label}
                   className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
                 >

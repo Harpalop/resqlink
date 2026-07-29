@@ -2,43 +2,54 @@ import { useEffect, useMemo, useState } from 'react'
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { useTheme } from 'next-themes'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Hospital, Loader2, Phone, RefreshCw, Siren, Star } from 'lucide-react'
 import { GlassCard } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { MapStyleSwitcher, MAP_STYLES } from '@/components/ui/map-style-switcher'
+import { MapControls } from '@/components/ui/map-controls'
 import { useAuth } from '@/features/auth/auth-context'
-import { mapApi, type EmergencyPin, type HospitalPin } from '@/features/map/api'
+import { mapApi, type EmergencyPin, type FacilityPin } from '@/features/map/api'
 import { cn } from '@/lib/utils'
 
 const INDIA_CENTER: [number, number] = [22.9, 78.6]
 
-const TILES = {
-  light: {
-    url: 'https://{s}.basemap.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  },
-  dark: {
-    url: 'https://{s}.basemap.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  },
-}
-
 // Leaflet renders marker HTML via innerHTML — the Tailwind classes below are
 // literal in this source file, so they're picked up at build time.
-const hospitalIcon = L.divIcon({
-  className: 'resq-marker',
-  html: `<div class="flex h-7 w-7 items-center justify-center rounded-full bg-blue-500 text-white shadow-lg ring-2 ring-white">
-    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-  </div>`,
-  iconSize: [28, 28],
-  iconAnchor: [14, 14],
-  popupAnchor: [0, -16],
-})
+const FACILITY_ICONS: Record<string, string> = {
+  HOSPITAL: '#3B82F6',
+  POLICE_STATION: '#16A34A',
+  FIRE_STATION: '#DC2626',
+  AMBULANCE_SERVICE: '#F97316',
+}
+const FACILITY_SVGS: Record<string, string> = {
+  HOSPITAL: '<path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="3" fill="none"/>',
+  POLICE_STATION: '<path d="M12 2C7 2 3 5 3 9v1c0 5 4 9 9 12 5-3 9-7 9-12V9c0-4-4-7-9-7z" fill="currentColor"/>',
+  FIRE_STATION: '<path d="M8 2h8l-1 6h5l-9 14v-8H8z" fill="currentColor"/>',
+  AMBULANCE_SERVICE: '<rect x="4" y="8" width="16" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6M9 14h6" stroke="currentColor" stroke-width="2"/>',
+}
+const FACILITY_LABELS: Record<string, string> = {
+  HOSPITAL: 'Hospital', POLICE_STATION: 'Police', FIRE_STATION: 'Fire Station', AMBULANCE_SERVICE: 'Ambulance',
+}
+
+function makeFacilityIcon(type: string) {
+  const color = FACILITY_ICONS[type] ?? '#3B82F6'
+  const svg = FACILITY_SVGS[type] ?? FACILITY_SVGS.HOSPITAL
+  return L.divIcon({
+    className: 'resq-marker bg-transparent',
+    html: `<div class="relative flex h-7 w-7 items-center justify-center">
+      <span class="absolute inline-flex h-full w-full rounded-full opacity-20" style="background:${color}"></span>
+      <span class="relative flex h-5 w-5 items-center justify-center rounded-full text-white shadow-lg ring-2 ring-white" style="background:${color}">
+        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24">${svg}</svg>
+      </span>
+    </div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -16],
+  })
+}
 
 const sosIcon = L.divIcon({
   className: 'resq-marker',
@@ -88,30 +99,32 @@ function StatPill({
   )
 }
 
+const EMPTY_FACILITIES: FacilityPin[] = []
+const EMPTY_EMERGENCIES: EmergencyPin[] = []
+
 export default function MapPage() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
-  const { resolvedTheme } = useTheme()
-  const tiles = resolvedTheme === 'light' ? TILES.light : TILES.dark
 
-  const [showHospitals, setShowHospitals] = useState(true)
+  const [mapStyleId, setMapStyleId] = useState('light')
+  const [showFacilities, setShowFacilities] = useState(true)
   const [showEmergencies, setShowEmergencies] = useState(true)
 
   const overviewQuery = useQuery({
     queryKey: ['map', 'overview'],
     queryFn: mapApi.getOverview,
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
   })
 
-  const hospitals = overviewQuery.data?.hospitals ?? []
-  const emergencies = overviewQuery.data?.emergencies ?? []
+  const facilities = overviewQuery.data?.facilities ?? EMPTY_FACILITIES
+  const emergencies = overviewQuery.data?.emergencies ?? EMPTY_EMERGENCIES
 
-  const visibleHospitals = useMemo(
-    () => (showHospitals ? hospitals : []),
-    [showHospitals, hospitals],
+  const visibleFacilities = useMemo(
+    () => (showFacilities ? facilities : EMPTY_FACILITIES),
+    [showFacilities, facilities],
   )
   const visibleEmergencies = useMemo(
-    () => (showEmergencies ? emergencies : []),
+    () => (showEmergencies ? emergencies : EMPTY_EMERGENCIES),
     [showEmergencies, emergencies],
   )
 
@@ -138,7 +151,7 @@ export default function MapPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <StatPill icon={Hospital} label="Hospitals" value={hospitals.length} tone="bg-blue-500" />
+        <StatPill icon={Hospital} label="Facilities" value={facilities.length} tone="bg-blue-500" />
         <StatPill
           icon={Siren}
           label={isAdmin ? 'Active SOS' : 'Your active SOS'}
@@ -147,10 +160,10 @@ export default function MapPage() {
         />
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <FilterChip
-            active={showHospitals}
-            onClick={() => setShowHospitals((v) => !v)}
+            active={showFacilities}
+            onClick={() => setShowFacilities((v) => !v)}
             dot="bg-blue-500"
-            label="Hospitals"
+            label="Emergency Services"
           />
           <FilterChip
             active={showEmergencies}
@@ -159,6 +172,10 @@ export default function MapPage() {
             label="SOS alerts"
           />
         </div>
+      </div>
+
+      <div className="flex justify-end">
+        <MapStyleSwitcher current={mapStyleId} onChange={setMapStyleId} />
       </div>
 
       <motion.div
@@ -176,16 +193,24 @@ export default function MapPage() {
             center={INDIA_CENTER}
             zoom={5}
             scrollWheelZoom
+            zoomControl={false}
             className="h-[560px] w-full lg:h-[calc(100vh-15rem)]"
             style={{ background: 'transparent' }}
           >
-            <TileLayer key={resolvedTheme} url={tiles.url} attribution={tiles.attribution} />
+            <TileLayer
+              key={mapStyleId}
+              url={MAP_STYLES.find((s) => s.id === mapStyleId)!.url}
+              attribution={MAP_STYLES.find((s) => s.id === mapStyleId)!.attribution}
+            />
             <MapResizer />
+            <div className="absolute right-2 bottom-2 z-[1000]">
+              <MapControls />
+            </div>
 
-            {visibleHospitals.map((h) => (
-              <Marker key={h.id} position={[h.latitude, h.longitude]} icon={hospitalIcon}>
+            {visibleFacilities.map((f) => (
+              <Marker key={f.id} position={[f.latitude, f.longitude]} icon={makeFacilityIcon(f.type)}>
                 <Popup>
-                  <HospitalPopup hospital={h} />
+                  <FacilityPopup facility={f} />
                 </Popup>
               </Marker>
             ))}
@@ -232,25 +257,28 @@ function FilterChip({
   )
 }
 
-function HospitalPopup({ hospital }: { hospital: HospitalPin }) {
+function FacilityPopup({ facility }: { facility: FacilityPin }) {
+
   return (
     <div className="min-w-[190px] space-y-1.5">
-      <p className="text-sm font-semibold text-slate-900">{hospital.name}</p>
+      <p className="text-sm font-semibold text-slate-900">{facility.name}</p>
       <p className="text-xs text-slate-500">
-        {hospital.city} · <Star className="mb-0.5 inline h-3 w-3 fill-amber-400 text-amber-400" />{' '}
-        {hospital.rating.toFixed(1)}
+        {facility.city} · {FACILITY_LABELS[facility.type] ?? facility.type}
+        {facility.rating > 0 && (
+          <> · <Star className="mb-0.5 inline h-3 w-3 fill-amber-400 text-amber-400" /> {facility.rating.toFixed(1)}</>
+        )}
       </p>
       <div className="flex flex-wrap gap-1 pt-0.5">
-        {hospital.emergencyDept && <Badge variant="emergency">Emergency</Badge>}
-        {hospital.bloodBank && <Badge variant="primary">Blood bank</Badge>}
-        {hospital.open24x7 && <Badge variant="success">24×7</Badge>}
+        {facility.emergencyDept && <Badge variant="emergency">Emergency</Badge>}
+        {facility.bloodBank && <Badge variant="primary">Blood bank</Badge>}
+        {facility.open24x7 && <Badge variant="success">24×7</Badge>}
       </div>
-      {hospital.phone && (
+      {facility.phone && (
         <a
-          href={`tel:${hospital.phone}`}
+          href={`tel:${facility.phone}`}
           className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-blue-600"
         >
-          <Phone className="h-3 w-3" /> {hospital.phone}
+          <Phone className="h-3 w-3" /> {facility.phone}
         </a>
       )}
     </div>

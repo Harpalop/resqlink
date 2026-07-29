@@ -49,7 +49,6 @@ export default function NotificationsPage() {
   const notificationsQuery = useQuery({
     queryKey: ['notifications'],
     queryFn: async () => (await api.get<NotificationRow[]>('/notifications')).data,
-    refetchInterval: 30_000,
   })
 
   const markAllMutation = useMutation({

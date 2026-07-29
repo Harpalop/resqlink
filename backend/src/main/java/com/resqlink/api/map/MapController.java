@@ -3,8 +3,9 @@ package com.resqlink.api.map;
 import com.resqlink.api.emergency.Emergency;
 import com.resqlink.api.emergency.EmergencyRepository;
 import com.resqlink.api.emergency.EmergencyStatus;
-import com.resqlink.api.hospital.Hospital;
-import com.resqlink.api.hospital.HospitalRepository;
+import com.resqlink.api.facility.EmergencyFacility;
+import com.resqlink.api.facility.EmergencyFacilityRepository;
+import com.resqlink.api.facility.EmergencyFacility.Type;
 import com.resqlink.api.user.Role;
 import com.resqlink.api.user.User;
 import lombok.RequiredArgsConstructor;
@@ -28,16 +29,16 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class MapController {
 
-    private final HospitalRepository hospitalRepository;
+    private final EmergencyFacilityRepository facilityRepository;
     private final EmergencyRepository emergencyRepository;
 
     public record HospitalPin(UUID id, String name, String city, String phone,
                               boolean emergencyDept, boolean bloodBank, boolean open24x7,
                               double rating, double latitude, double longitude) {
-        static HospitalPin from(Hospital h) {
-            return new HospitalPin(h.getId(), h.getName(), h.getCity(), h.getPhone(),
-                    h.isEmergencyDept(), h.isBloodBank(), h.isOpen24x7(), h.getRating(),
-                    h.getLatitude(), h.getLongitude());
+        static HospitalPin from(EmergencyFacility f) {
+            return new HospitalPin(f.getId(), f.getName(), f.getCity(), f.getPhone(),
+                    f.isEmergencyDept(), f.isBloodBank(), f.isOpen24x7(), f.getRating(),
+                    f.getLatitude(), f.getLongitude());
         }
     }
 
@@ -50,15 +51,24 @@ public class MapController {
         }
     }
 
-    public record MapOverview(List<HospitalPin> hospitals, List<EmergencyPin> emergencies) {
+    public record FacilityPin(UUID id, String name, String city, String phone,
+                              String type, boolean emergencyDept, boolean bloodBank,
+                              boolean open24x7, double rating, double latitude, double longitude) {
+        static FacilityPin from(EmergencyFacility f) {
+            return new FacilityPin(f.getId(), f.getName(), f.getCity(), f.getPhone(),
+                    f.getType().name(), f.isEmergencyDept(), f.isBloodBank(),
+                    f.isOpen24x7(), f.getRating(), f.getLatitude(), f.getLongitude());
+        }
+    }
+
+    public record MapOverview(List<FacilityPin> facilities, List<EmergencyPin> emergencies) {
     }
 
     @GetMapping("/overview")
     @Transactional(readOnly = true)
     public MapOverview overview(@AuthenticationPrincipal User user) {
-        List<HospitalPin> hospitals = hospitalRepository.findTop50ByOrderByRatingDesc().stream()
-                .filter(h -> h.getLatitude() != null && h.getLongitude() != null)
-                .map(HospitalPin::from)
+        List<FacilityPin> facilities = facilityRepository.findAll().stream()
+                .map(FacilityPin::from)
                 .toList();
 
         boolean isAdmin = user.getRole() == Role.ADMIN;
@@ -71,6 +81,6 @@ public class MapController {
                 .map(e -> EmergencyPin.from(e, user.getId()))
                 .toList();
 
-        return new MapOverview(hospitals, emergencies);
+        return new MapOverview(facilities, emergencies);
     }
 }
