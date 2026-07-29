@@ -89,7 +89,6 @@ public class WebSocketPushService {
                 report.getTitle(), report.getDescription(), report.getLatitude(),
                 report.getLongitude(), report.getStatus().name()));
     }
-
     /* ─── Inner DTOs (sent as JSON over the wire) ──────────── */
 
     public record NotificationPayload(
@@ -108,7 +107,6 @@ public class WebSocketPushService {
             String severity, String title, String region,
             boolean active) {
     }
-
     public record ChatMessagePayload(
             UUID roomId, UUID senderId, String senderName,
             String content, String createdAt) {
