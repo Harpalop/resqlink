@@ -62,3 +62,57 @@ self.addEventListener('fetch', (event) => {
       })
   );
 });
+
+// Push Notifications
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+  
+  try {
+    const data = event.data.json();
+    const title = data.title || 'ResQLink Notification';
+    const options = {
+      body: data.body || '',
+      icon: '/logo-192.png',
+      badge: '/logo-192.png',
+      data: {
+        url: data.url || '/'
+      },
+      vibrate: [200, 100, 200]
+    };
+    
+    event.waitUntil(
+      self.registration.showNotification(title, options)
+    );
+  } catch (err) {
+    console.error('Push event payload could not be parsed as JSON', err);
+  }
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  
+  const urlToOpen = new URL(event.notification.data.url || '/', self.location.origin).href;
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      // Check if there is already a window/tab open with the target URL
+      let matchingClient = null;
+      for (let i = 0; i < windowClients.length; i++) {
+        const client = windowClients[i];
+        // If we want to focus the app regardless of current path, just check origin
+        if (client.url.startsWith(self.location.origin)) {
+          matchingClient = client;
+          break;
+        }
+      }
+
+      if (matchingClient) {
+        // If it's already open, navigate and focus
+        return matchingClient.navigate(urlToOpen).then(client => client.focus());
+      } else {
+        // Otherwise open a new window
+        return self.clients.openWindow(urlToOpen);
+      }
+    })
+  );
+});
