@@ -39,6 +39,7 @@ public class ContactService {
                 .user(user)
                 .name(request.name().trim())
                 .phone(request.phone().trim())
+                .email(request.email())
                 .relationship(request.relationship())
                 .priority(request.priority() == null ? 1 : request.priority())
                 .build();
@@ -51,6 +52,7 @@ public class ContactService {
         EmergencyContact contact = findOwned(user, contactId);
         contact.setName(request.name().trim());
         contact.setPhone(request.phone().trim());
+        contact.setEmail(request.email());
         contact.setRelationship(request.relationship());
         if (request.priority() != null) {
             contact.setPriority(request.priority());
