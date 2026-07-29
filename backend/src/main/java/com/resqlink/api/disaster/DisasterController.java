@@ -134,6 +134,8 @@ public class DisasterController {
                         HttpStatus.NOT_FOUND, "Alert not found"));
     }
 
+
+
     /** Seeds one sample alert so the UI has something to show. */
     @Component
     @RequiredArgsConstructor

@@ -46,6 +46,9 @@ public class EmergencyContact {
     @Column(length = 40)
     private String relationship;
 
+    @Column(length = 160)
+    private String email;
+
     /** 1 = highest priority, contacted first. */
     @Builder.Default
     @Column(nullable = false)
