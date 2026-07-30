@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Bell, BellOff } from 'lucide-react'
+import { toast } from 'sonner'
 import { useAuth } from '@/features/auth/auth-context'
 import { chatApi } from '@/features/chat/api'
 import { subscribeWs } from '@/lib/websocket'
 import { Button } from '@/components/ui/button'
 
-// A small store/event-emitter for the toggle state across components if needed,
-// but we'll just handle it internally and expose a toggle button component.
 let globalNotificationsEnabled = localStorage.getItem('chat_notifications') !== 'false'
 
 export function ChatNotificationToggle() {
@@ -19,7 +17,6 @@ export function ChatNotificationToggle() {
     globalNotificationsEnabled = next
     localStorage.setItem('chat_notifications', String(next))
     setEnabled(next)
-    // Dispatch a custom event so the listener picks it up
     window.dispatchEvent(new Event('chat_notifications_changed'))
   }
 
@@ -42,10 +39,9 @@ export function ChatNotificationToggle() {
 export function GlobalChatListener() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
-  const [liveNotification, setLiveNotification] = useState<{ senderName: string, content: string } | null>(null)
 
   useEffect(() => {
-    const handleToggle = () => {} // State is managed in globalNotificationsEnabled var
+    const handleToggle = () => {} 
     window.addEventListener('chat_notifications_changed', handleToggle)
     return () => window.removeEventListener('chat_notifications_changed', handleToggle)
   }, [])
@@ -60,16 +56,14 @@ export function GlobalChatListener() {
         const filter = ctx.createBiquadFilter()
         const gain = ctx.createGain()
         
-        osc.type = 'triangle' // Triangle wave provides that distinct hollow synth-pluck sound
+        osc.type = 'triangle'
         osc.frequency.setValueAtTime(freq, startTime)
         
-        // Lowpass filter envelope (starts bright, closes rapidly)
         filter.type = 'lowpass'
         filter.Q.setValueAtTime(1, startTime)
         filter.frequency.setValueAtTime(freq * 4, startTime)
         filter.frequency.exponentialRampToValueAtTime(freq, startTime + 0.1)
         
-        // Amplitude envelope (extremely fast attack and decay like Discord)
         gain.gain.setValueAtTime(0, startTime)
         gain.gain.linearRampToValueAtTime(vol, startTime + 0.002)
         gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.25)
@@ -82,12 +76,9 @@ export function GlobalChatListener() {
         osc.stop(startTime + 0.3)
       }
 
-      // Exact Discord-style timing and interval (approx D5 -> A5)
-      playDiscordPluck(587.33, now, 0.4)          // D5
-      playDiscordPluck(880.00, now + 0.09, 0.5)   // A5
-    } catch (e) {
-      // Audio context might be suspended
-    }
+      playDiscordPluck(587.33, now, 0.4)          
+      playDiscordPluck(880.00, now + 0.09, 0.5)   
+    } catch (e) {}
   }
 
   const roomsQuery = useQuery({
@@ -96,15 +87,12 @@ export function GlobalChatListener() {
     enabled: !!user,
   })
 
-  // We need to know which room is currently ACTIVE in the UI to suppress toasts if we are looking at it.
-  // We can check the URL!
   const isLookingAtChatRoom = (roomId: string) => {
     return window.location.pathname === '/chat' && localStorage.getItem('last_active_chat_room') === roomId
   }
 
   useEffect(() => {
     if (!roomsQuery.data || !user) return
-    let toastTimer: ReturnType<typeof setTimeout>
 
     const subs = roomsQuery.data.map(room => {
       return subscribeWs(`/topic/chat/${room.id}`, (msg: any) => {
@@ -112,56 +100,38 @@ export function GlobalChatListener() {
           const payload = JSON.parse(msg.body)
           
           if (payload.eventType !== 'TYPING') {
-            // Invalidate queries so chat UI stays updated
             queryClient.invalidateQueries({ queryKey: ['chat', 'messages', room.id] })
             queryClient.invalidateQueries({ queryKey: ['chat', 'rooms'] })
-
-            // Dispatch global event for chat/index.tsx to clear its own typing indicators
             window.dispatchEvent(new CustomEvent('chat_message_received', { detail: { roomId: room.id } }))
 
-            // Only notify if it's not our own message and notifications are ON
             if (payload.senderId !== user.id && globalNotificationsEnabled) {
-              // And only if we are NOT actively looking at this exact chat room in the UI right now
               if (!isLookingAtChatRoom(room.id) || document.hidden) {
-                setLiveNotification({ senderName: payload.senderName, content: payload.content })
+                
                 playPremiumNotificationSound()
                 
-                clearTimeout(toastTimer)
-                toastTimer = setTimeout(() => setLiveNotification(null), 4000)
+                // Trigger Sonner premium toast
+                toast.custom((t) => (
+                  <div className="flex w-[340px] items-center gap-3 rounded-2xl bg-[#111827]/95 p-4 shadow-[0_8px_30px_rgba(37,99,235,0.3)] backdrop-blur-2xl border border-[#2563EB]/50 transition-all cursor-pointer hover:bg-[#1f2937]/95" onClick={() => toast.dismiss(t)}>
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#2563EB] text-white">
+                      <span className="text-sm font-bold text-white uppercase">{payload.senderName.substring(0, 2)}</span>
+                    </div>
+                    <div className="flex-1 min-w-0 pr-2">
+                      <p className="text-sm font-semibold text-white">{payload.senderName}</p>
+                      <p className="truncate text-xs text-[#94A3B8]">{payload.content}</p>
+                    </div>
+                  </div>
+                ), { duration: 5000 })
               }
             }
           } else {
-             // Dispatch global event for chat/index.tsx to show typing indicator
              window.dispatchEvent(new CustomEvent('chat_typing_received', { detail: payload }))
           }
         } catch (e) {}
       })
     })
 
-    return () => {
-      subs.forEach(sub => sub?.unsubscribe())
-      clearTimeout(toastTimer)
-    }
+    return () => subs.forEach(sub => sub?.unsubscribe())
   }, [roomsQuery.data, queryClient, user])
 
-  return (
-    <AnimatePresence>
-      {liveNotification && (
-        <motion.div
-          initial={{ opacity: 0, y: -20, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -20, scale: 0.9 }}
-          className="fixed top-6 right-6 z-[100] flex max-w-sm items-center gap-3 rounded-2xl bg-[#111827]/90 p-4 shadow-[0_8px_30px_rgba(37,99,235,0.3)] backdrop-blur-xl border border-[#2563EB]/50"
-        >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#2563EB] text-white">
-            <span className="text-sm font-bold text-white uppercase">{liveNotification.senderName.substring(0, 2)}</span>
-          </div>
-          <div className="flex-1 min-w-0 pr-2">
-            <p className="text-sm font-semibold text-white">{liveNotification.senderName}</p>
-            <p className="truncate text-xs text-[#94A3B8]">{liveNotification.content}</p>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  )
+  return null
 }
