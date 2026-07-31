@@ -162,24 +162,27 @@ export function AppShell() {
         <Logo className="mb-8 px-1" />
         <NavLinks user={user} />
         <div className="mt-auto space-y-3">
-          <div 
+          <motion.div 
             onClick={() => setSettingsModalOpen(true)}
-            className="glass-panel flex items-center gap-3 rounded-xl p-3 cursor-pointer hover:bg-white/[0.05] transition-colors"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="group relative glass-panel flex items-center gap-3 rounded-xl p-3 cursor-pointer overflow-hidden border border-border/50 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300"
           >
-            <div className="relative h-9 w-9 shrink-0 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-violet-500 border border-white/10 shadow-sm">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-transparent -translate-x-[100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out" />
+            <div className="relative h-9 w-9 shrink-0 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-violet-500 border border-white/10 shadow-sm group-hover:shadow-primary/20 transition-shadow">
               {user?.profilePictureUrl ? (
-                <img src={user.profilePictureUrl} alt={user.fullName} className="h-full w-full object-cover" />
+                <img src={user.profilePictureUrl} alt={user.fullName} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-white">
                   {user ? getInitials(user.fullName) : '?'}
                 </div>
               )}
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{user?.fullName}</p>
+            <div className="relative min-w-0 flex-1 z-10">
+              <p className="truncate text-sm font-medium transition-colors group-hover:text-primary">{user?.fullName}</p>
               <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
             </div>
-          </div>
+          </motion.div>
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-1">
               <ThemeToggle />
