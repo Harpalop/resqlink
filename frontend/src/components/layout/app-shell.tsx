@@ -36,6 +36,7 @@ import { cn, getInitials } from '@/lib/utils'
 import { GlobalChatListener, ChatNotificationToggle } from '@/components/layout/global-chat-listener'
 import { UserSettingsModal } from '@/components/ui/user-settings-modal'
 import { PushPrompt } from '@/components/ui/push-prompt'
+import { Toaster } from 'sonner'
 
 interface NavItem {
   to: string
@@ -155,6 +156,7 @@ export function AppShell() {
   return (
     <div className="relative min-h-screen">
       <GradientOrbs className="opacity-50" />
+      <Toaster position="top-right" expand={true} />
       <GlobalChatListener />
 
       {/* Desktop sidebar */}
